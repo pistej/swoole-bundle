@@ -59,6 +59,7 @@ use SwooleBundle\SwooleBundle\Server\Api\ApiServerClient;
 use SwooleBundle\SwooleBundle\Server\Api\ApiServerClientFactory;
 use SwooleBundle\SwooleBundle\Server\Api\ApiServerRequestHandler;
 use SwooleBundle\SwooleBundle\Server\Api\WithApiServerConfiguration;
+use SwooleBundle\SwooleBundle\Server\ConcurrentTasks;
 use SwooleBundle\SwooleBundle\Server\Config\Sockets;
 use SwooleBundle\SwooleBundle\Server\Configurator\CallableChainConfiguratorFactory;
 use SwooleBundle\SwooleBundle\Server\Configurator\WithHttpServerConfiguration;
@@ -483,4 +484,14 @@ return static function (ContainerConfigurator $containerConfigurator): void {
             service(SystemSwooleFactory::class),
             'newInstance',
         ]);
+
+    $services->set(ConcurrentTasks\ConcurrentTasks::class)
+        ->arg('$httpServer', service(HttpServer::class));
+
+    $services->set(SwooleBundle\SwooleBundle\Server\TaskHandler\TaskFinisher::class, SwooleBundle\SwooleBundle\Server\TaskHandler\SwooleTaskFinisher::class);
+
+    $services->set(ConcurrentTasks\ConcurrentTaskHandler::class)
+        ->decorate(TaskHandler::class)
+        ->arg('$decorated', service(ConcurrentTasks\ConcurrentTaskHandler::class . '.inner'))
+        ->arg('$taskFinisher', service(SwooleBundle\SwooleBundle\Server\TaskHandler\TaskFinisher::class));
 };

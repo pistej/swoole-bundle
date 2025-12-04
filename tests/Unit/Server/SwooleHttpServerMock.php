@@ -18,6 +18,11 @@ abstract class SwooleHttpServerMock extends Server
 
     private static ?self $instance = null;
 
+    /**
+     * @var array|bool
+     */
+    private $taskWaitMultiResult = [];
+
     private function __construct()
     {
         parent::__construct('localhost', 31999);
@@ -48,9 +53,20 @@ abstract class SwooleHttpServerMock extends Server
         return $this->registeredEventPair;
     }
 
+    public function setTaskWaitMultiResult(array|bool $result): void
+    {
+        $this->taskWaitMultiResult = $result;
+    }
+
+    public function taskWaitMulti(array $tasks, float $timeout = 0.5): array|false
+    {
+        return $this->taskWaitMultiResult;
+    }
+
     private function clean(): void
     {
         $this->registeredEvent = false;
         $this->registeredEventPair = [];
+        $this->taskWaitMultiResult = [];
     }
 }
