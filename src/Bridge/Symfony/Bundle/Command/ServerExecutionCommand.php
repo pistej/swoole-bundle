@@ -124,6 +124,14 @@ abstract class ServerExecutionCommand extends Command
                 InputOption::VALUE_REQUIRED,
                 'Listen for API Server on this port',
                 $this->parameterBag->get('swoole.http_server.api.port')
+            )
+            ->addOption('grpc', null, InputOption::VALUE_NONE, 'Enable gRPC Server')
+            ->addOption(
+                'grpc-port',
+                null,
+                InputOption::VALUE_REQUIRED,
+                'Listen for gRPC Server on this port',
+                $this->parameterBag->get('swoole.http_server.grpc.port')
             );
     }
 
@@ -208,6 +216,14 @@ abstract class ServerExecutionCommand extends Command
             Assertion::numeric($apiPort, 'Port must be a number.');
 
             $sockets->changeApiSocket(new Socket('0.0.0.0', (int) $apiPort));
+        }
+
+        if ((bool) $input->getOption('grpc')) {
+            /** @var string $grpcPort */
+            $grpcPort = $input->getOption('grpc-port');
+            Assertion::numeric($grpcPort, 'Port must be a number.');
+
+            $sockets->changeGrpcSocket(new Socket('0.0.0.0', (int) $grpcPort));
         }
 
         if (!filter_var($input->getOption('serve-static'), FILTER_VALIDATE_BOOLEAN)) {
@@ -382,7 +398,8 @@ abstract class ServerExecutionCommand extends Command
         return HttpServerFactory::make(
             $serverSocket,
             $this->serverConfiguration->getRunningMode(),
-            ...($sockets->hasApiSocket() ? [$sockets->getApiSocket()] : [])
+            ...($sockets->hasApiSocket() ? [$sockets->getApiSocket()] : []),
+            ...($sockets->hasGrpcSocket() ? [$sockets->getGrpcSocket()] : [])
         );
     }
 

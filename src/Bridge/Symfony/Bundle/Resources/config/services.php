@@ -59,6 +59,10 @@ use SwooleBundle\SwooleBundle\Server\Api\ApiServerClient;
 use SwooleBundle\SwooleBundle\Server\Api\ApiServerClientFactory;
 use SwooleBundle\SwooleBundle\Server\Api\ApiServerRequestHandler;
 use SwooleBundle\SwooleBundle\Server\Api\WithApiServerConfiguration;
+use SwooleBundle\SwooleBundle\Server\Grpc\Grpc;
+use SwooleBundle\SwooleBundle\Server\Grpc\GrpcServer;
+use SwooleBundle\SwooleBundle\Server\Grpc\GrpcServerRequestHandler;
+use SwooleBundle\SwooleBundle\Server\Grpc\WithGrpcServerConfiguration;
 use SwooleBundle\SwooleBundle\Server\Config\Sockets;
 use SwooleBundle\SwooleBundle\Server\Configurator\CallableChainConfiguratorFactory;
 use SwooleBundle\SwooleBundle\Server\Configurator\WithHttpServerConfiguration;
@@ -366,6 +370,24 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     $services->set('swoole_bundle.server.api_server.request_handler', ExceptionRequestHandler::class)
         ->arg('$decorated', service(ApiServerRequestHandler::class))
         ->arg('$exceptionHandler', service(ExceptionHandler::class));
+
+    $services->alias(Grpc::class, GrpcServer::class);
+
+    $services->set(GrpcServer::class)
+        ->arg('$server', service(HttpServer::class))
+        ->arg('$serverConfiguration', service(HttpServerConfiguration::class));
+
+    $services->set(GrpcServerRequestHandler::class)
+        ->arg('$grpcServer', service(Grpc::class));
+
+    $services->set('swoole_bundle.server.grpc_server.request_handler', ExceptionRequestHandler::class)
+        ->arg('$decorated', service(GrpcServerRequestHandler::class))
+        ->arg('$exceptionHandler', service(ExceptionHandler::class));
+
+    $services->set(WithGrpcServerConfiguration::class)
+        ->arg('$sockets', service(Sockets::class))
+        ->arg('$requestHandler', service('swoole_bundle.server.grpc_server.request_handler'))
+        ->tag('swoole_bundle.server_configurator');
 
     $services->set('swoole_bundle.server.http_server.configurator_collection', GeneratedCollection::class)
         ->arg('$itemCollection', tagged_iterator('swoole_bundle.server_configurator'))

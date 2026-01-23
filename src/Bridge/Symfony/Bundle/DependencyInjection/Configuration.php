@@ -108,6 +108,32 @@ final readonly class Configuration implements ConfigurationInterface
                                 ->end()
                             ->end()
                         ->end()
+                        ->arrayNode('grpc')
+                            ->addDefaultsIfNotSet()
+                            ->beforeNormalization()
+                                ->ifTrue(
+                                    static fn($v): bool => is_string($v) || is_bool($v) || is_numeric($v) || $v === null,
+                                )
+                                ->then(static fn($v): array => [
+                                    'enabled' => (bool)$v,
+                                    'host' => '0.0.0.0',
+                                    'port' => 9503,
+                                ])
+                            ->end()
+                            ->children()
+                                ->booleanNode('enabled')
+                                    ->defaultFalse()
+                                ->end()
+                                ->scalarNode('host')
+                                    ->cannotBeEmpty()
+                                    ->defaultValue('0.0.0.0')
+                                ->end()
+                                ->scalarNode('port')
+                                    ->cannotBeEmpty()
+                                    ->defaultValue(9503)
+                                ->end()
+                            ->end()
+                        ->end()
                         ->arrayNode('static')
                             ->addDefaultsIfNotSet()
                             ->beforeNormalization()

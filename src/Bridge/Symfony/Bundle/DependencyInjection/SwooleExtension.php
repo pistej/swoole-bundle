@@ -135,6 +135,11 @@ use ZEngine\Core;
  *     host: string,
  *     port: int,
  *   },
+ *   grpc: array{
+ *     enabled: bool,
+ *     host: string,
+ *     port: int,
+ *   },
  *   hmr: HmrConfig,
  *   host: string,
  *   port: int,
@@ -278,6 +283,8 @@ final class SwooleExtension extends Extension
         $container->setParameter('swoole.http_server.trusted_hosts', $config['trusted_hosts']);
         $container->setParameter('swoole.http_server.api.host', $config['api']['host']);
         $container->setParameter('swoole.http_server.api.port', $config['api']['port']);
+        $container->setParameter('swoole.http_server.grpc.host', $config['grpc']['host']);
+        $container->setParameter('swoole.http_server.grpc.port', $config['grpc']['port']);
 
         return $this->prepareHttpServerConfiguration($config, $container);
     }
@@ -341,6 +348,7 @@ final class SwooleExtension extends Extension
     {
         [
             'api' => $api,
+            'grpc' => $grpc,
             'hmr' => $hmr,
             'host' => $host,
             'port' => $port,
@@ -388,10 +396,14 @@ final class SwooleExtension extends Extension
         }
 
         $sockets = $container->getDefinition(Sockets::class)
-            ->addArgument(new Definition(Socket::class, [$host, $port, $socketType, $sslEnabled]));
+            ->setArgument('$serverSocket', new Definition(Socket::class, [$host, $port, $socketType, $sslEnabled]));
 
         if ($api['enabled']) {
-            $sockets->addArgument(new Definition(Socket::class, [$api['host'], $api['port']]));
+            $sockets->setArgument('$apiSocket', new Definition(Socket::class, [$api['host'], $api['port']]));
+        }
+
+        if ($grpc['enabled']) {
+            $sockets->setArgument('$grpcSocket', new Definition(Socket::class, [$grpc['host'], $grpc['port']]));
         }
 
         $this->configureHttpServerHMR($hmr, $container);

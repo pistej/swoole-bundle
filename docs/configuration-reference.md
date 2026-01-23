@@ -68,6 +68,16 @@ swoole:
     #     host: 0.0.0.0
     #     port: 9200
 
+    # enables grpc server on specific port
+    # by default it is disabled (can be also enabled using --grpc flag via cli)
+    grpc: true
+    # equals to:
+    # ---
+    # grpc:
+    #     enabled: true
+    #     host: 0.0.0.0
+    #     port: 9503
+
     # additional swoole symfony bundle services
     services:
 
