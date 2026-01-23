@@ -12,6 +12,7 @@ use SwooleBundle\SwooleBundle\Bridge\Symfony\Bundle\DependencyInjection\Compiler
     SessionStorageListenerPass,
     StatefulServicesPass,
     StreamedResponseListenerPass,
+    GrpcControllerPass,
 };
 use Symfony\Component\DependencyInjection\Compiler\PassConfig;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -26,6 +27,7 @@ final class SwooleBundle extends Bundle
         $container->addCompilerPass(new SessionStorageListenerPass());
         $container->addCompilerPass(new MessengerTransportFactoryPass());
         $container->addCompilerPass(new ExceptionHandlerPass());
+        $container->addCompilerPass(new GrpcControllerPass());
         $container->addCompilerPass(new StatefulServicesPass(), PassConfig::TYPE_BEFORE_REMOVING, -10000);
         $container->addCompilerPass(new FinalizeDefinitionsAfterRemovalPass(), PassConfig::TYPE_AFTER_REMOVING, -10000);
     }
