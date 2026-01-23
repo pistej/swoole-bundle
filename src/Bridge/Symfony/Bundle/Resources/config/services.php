@@ -62,6 +62,7 @@ use SwooleBundle\SwooleBundle\Server\Api\WithApiServerConfiguration;
 use SwooleBundle\SwooleBundle\Server\Grpc\Grpc;
 use SwooleBundle\SwooleBundle\Server\Grpc\GrpcServer;
 use SwooleBundle\SwooleBundle\Server\Grpc\GrpcServerRequestHandler;
+use SwooleBundle\SwooleBundle\Server\Grpc\Service\ServiceHandler;
 use SwooleBundle\SwooleBundle\Server\Grpc\WithGrpcServerConfiguration;
 use SwooleBundle\SwooleBundle\Server\Config\Sockets;
 use SwooleBundle\SwooleBundle\Server\Configurator\CallableChainConfiguratorFactory;
@@ -377,8 +378,13 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         ->arg('$server', service(HttpServer::class))
         ->arg('$serverConfiguration', service(HttpServerConfiguration::class));
 
+    $services->set(ServiceHandler::class)
+        ->arg('$services', tagged_iterator('swoole_bundle.grpc_service'))
+        ->arg('$container', service('service_container'));
+
     $services->set(GrpcServerRequestHandler::class)
-        ->arg('$grpcServer', service(Grpc::class));
+        ->arg('$server', service(HttpServer::class))
+        ->arg('$serviceHandler', service(ServiceHandler::class));
 
     $services->set('swoole_bundle.server.grpc_server.request_handler', ExceptionRequestHandler::class)
         ->arg('$decorated', service(GrpcServerRequestHandler::class))
