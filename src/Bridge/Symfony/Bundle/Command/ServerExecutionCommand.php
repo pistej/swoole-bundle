@@ -172,6 +172,9 @@ abstract class ServerExecutionCommand extends Command
         if ($sockets->hasApiSocket()) {
             $io->success(sprintf('API Server started on http://%s', $sockets->getApiSocket()->addressPort()));
         }
+        if ($sockets->hasGrpcSocket()) {
+            $io->success(sprintf('gRPC Server started on http://%s', $sockets->getGrpcSocket()->addressPort()));
+        }
         $io->table(
             ['Configuration', 'Values'],
             $this->prepareConfigurationRowsToPrint($this->serverConfiguration, $runtimeConfiguration)
@@ -301,12 +304,7 @@ abstract class ServerExecutionCommand extends Command
             ['worker_max_request_grace', (string) $serverConfiguration->getMaxRequestGrace()],
             ['memory_limit', format_bytes(get_max_memory())],
             ['trusted_hosts', implode(', ', $runtimeConfiguration['trustedHosts'] ?? [])],
-            ['grpc server', $serverConfiguration->getSockets()->getGrpcSocket() ? 'enabled' : 'disabled'],
         ];
-
-        if ($serverConfiguration->getSockets()->getGrpcSocket()) {
-            $rows[] = ['grpc host:port', $serverConfiguration->getSockets()->getGrpcSocket()->addressPort()];
-        }
 
         if (isset($runtimeConfiguration['trustAllProxies'])) {
             $rows[] = ['trusted_proxies', '*'];
