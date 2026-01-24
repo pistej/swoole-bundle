@@ -155,8 +155,12 @@ swoole:
       http_compression_level: 4
       # can be from 1 to 9, where 1 is the fastest and 9 is the slowest compression
 
-      open_http2_protocol: true
-      # default false, enables HTTP/2 protocol
+      open_http2_protocol: false
+      # default false, enables HTTP/2 protocol. 
+      # automatically set to true if grpc server is enabled.
+
+      open_tcp_nodelay: false
+      # default false, this option attempts to improve the efficiency of TCP/IP by reducing the number of packets that need to be sent
 
   task_worker: # task workers' specific settings
     services:

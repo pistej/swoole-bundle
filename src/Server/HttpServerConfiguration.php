@@ -155,4 +155,6 @@ interface HttpServerConfiguration
     public function getTaskWorkerCount(): int;
 
     public function hasOpenHttp2Protocol(): bool;
+
+    public function hasOpenTcpNodelay(): bool;
 }

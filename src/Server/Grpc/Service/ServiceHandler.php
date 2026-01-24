@@ -177,7 +177,7 @@ class ServiceHandler
         }
 
         if (!array_key_exists($method, $this->methods[$serviceName] ?? [])) {
-            throw InvokeException::create('Code 5', Status::NOT_FOUND);
+            throw InvokeException::create('Method Code 5', Status::NOT_FOUND);
         }
 
         return [$this->services[$serviceName], $this->methods[$serviceName][$method]];

@@ -15,6 +15,9 @@ final class SwooleServerGrpcConfigurationTest extends ServerTestCase
         $this->deleteVarDirectory();
     }
 
+    /**
+     * TODO: wrong. not needed test anymore
+     */
     public function testGrpcNotImplementedResponse(): void
     {
         $serverStart = $this->createConsoleProcess(

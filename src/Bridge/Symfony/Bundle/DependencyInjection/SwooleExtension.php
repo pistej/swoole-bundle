@@ -80,6 +80,8 @@ use ZEngine\Core;
  *   group: string,
  *   http_compression: bool,
  *   http_compression_level: int,
+ *   open_http2_protocol: bool,
+ *   open_tcp_nodelay: bool,
  * }
  * @phpstan-type TaskWorkerServicesConfig = array{
  *   reset_handler: bool,
@@ -377,6 +379,10 @@ final class SwooleExtension extends Extension
 
         if ($settings['log_level'] === 'auto') {
             $settings['log_level'] = $this->isDebug($container) ? 'debug' : 'notice';
+        }
+
+        if ($grpc['enabled']) {
+            $settings['open_http2_protocol'] = true;
         }
 
         if ((bool) $container->getParameter(ContainerConstants::PARAM_COROUTINES_ENABLED)) {

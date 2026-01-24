@@ -328,6 +328,10 @@ final readonly class Configuration implements ConfigurationInterface
                                     ->defaultFalse()
                                     ->treatNullLike(false)
                                 ->end()
+                                ->booleanNode('open_tcp_nodelay')
+                                    ->defaultFalse()
+                                    ->treatNullLike(false)
+                                ->end()
                             ->end()
                         ->end() // settings
                     ->end()
