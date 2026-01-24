@@ -324,6 +324,10 @@ final readonly class Configuration implements ConfigurationInterface
                                 ->scalarNode('http_compression_level')
                                     ->defaultValue(4)
                                 ->end()
+                                ->booleanNode('open_http2_protocol')
+                                    ->defaultFalse()
+                                    ->treatNullLike(false)
+                                ->end()
                             ->end()
                         ->end() // settings
                     ->end()

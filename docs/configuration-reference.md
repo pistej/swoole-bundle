@@ -155,6 +155,9 @@ swoole:
       http_compression_level: 4
       # can be from 1 to 9, where 1 is the fastest and 9 is the slowest compression
 
+      open_http2_protocol: true
+      # default false, enables HTTP/2 protocol
+
   task_worker: # task workers' specific settings
     services:
       reset_handler: true # default true, set to false to disable services resetter on task processing end

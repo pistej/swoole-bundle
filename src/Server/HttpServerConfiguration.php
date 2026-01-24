@@ -153,4 +153,6 @@ interface HttpServerConfiguration
     public function daemonize(?string $pidFile = null): void;
 
     public function getTaskWorkerCount(): int;
+
+    public function hasOpenHttp2Protocol(): bool;
 }

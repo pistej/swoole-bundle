@@ -65,6 +65,7 @@ final class DefaultHttpServerConfiguration implements HttpServerConfiguration
     private const SWOOLE_HTTP_SERVER_CONFIG_COROUTINE_HOOK_FLAGS = 'hook_flags';
     private const SWOOLE_HTTP_SERVER_CONFIG_USER = 'user';
     private const SWOOLE_HTTP_SERVER_CONFIG_GROUP = 'group';
+    private const SWOOLE_HTTP_SERVER_CONFIG_OPEN_HTTP2_PROTOCOL = 'open_http2_protocol';
 
     /**
      * @todo add more
@@ -94,6 +95,7 @@ final class DefaultHttpServerConfiguration implements HttpServerConfiguration
         self::SWOOLE_HTTP_SERVER_CONFIG_WORKER_MAX_REQUEST => 'max_request',
         self::SWOOLE_HTTP_SERVER_CONFIG_USER => 'user',
         self::SWOOLE_HTTP_SERVER_CONFIG_GROUP => 'group',
+        self::SWOOLE_HTTP_SERVER_CONFIG_OPEN_HTTP2_PROTOCOL => 'open_http2_protocol',
     ];
 
     private const SWOOLE_SERVE_STATIC = [
@@ -181,6 +183,11 @@ final class DefaultHttpServerConfiguration implements HttpServerConfiguration
     public function hasUploadTmpDir(): bool
     {
         return !empty($this->settings[self::SWOOLE_HTTP_SERVER_CONFIG_UPLOAD_TMP_DIR]);
+    }
+
+    public function hasOpenHttp2Protocol(): bool
+    {
+        return !empty($this->settings[self::SWOOLE_HTTP_SERVER_CONFIG_OPEN_HTTP2_PROTOCOL]);
     }
 
     public function changeServerSocket(Socket $socket): void
@@ -510,6 +517,7 @@ final class DefaultHttpServerConfiguration implements HttpServerConfiguration
             case self::SWOOLE_HTTP_SERVER_CONFIG_DAEMONIZE:
             case self::SWOOLE_HTTP_SERVER_CONFIG_TASK_USE_OBJECT:
             case self::SWOOLE_HTTP_SERVER_CONFIG_HTTP_COMPRESSION:
+            case self::SWOOLE_HTTP_SERVER_CONFIG_OPEN_HTTP2_PROTOCOL:
                 Assertion::boolean($value);
 
                 break;
