@@ -2,16 +2,17 @@
 
 declare(strict_types=1);
 
-namespace SwooleBundle\SwooleBundle\Server\Grpc\Context;
+namespace SwooleBundle\SwooleBundle\Server\Grpc\Factory;
 
+use SwooleBundle\SwooleBundle\Server\Grpc\Context\Context;
+use SwooleBundle\SwooleBundle\Server\Grpc\Context\Request;
+use SwooleBundle\SwooleBundle\Server\Grpc\Context\Response;
 use SwooleBundle\SwooleBundle\Server\HttpServer;
 
 /**
- * Class Builder
- *
- * Responsible for creating Context instances from Swoole HTTP requests and responses.
+ * Factory for creating gRPC Context instances.
  */
-final class Builder
+final class ContextFactory
 {
     /**
      * Create a new Context instance.
@@ -20,12 +21,11 @@ final class Builder
      * @param \Swoole\HTTP\Request $swooleRequest the Swoole HTTP request object
      * @param \Swoole\Http\Response $swooleResponse the Swoole HTTP response object
      */
-    public static function createContext(
+    public function createContext(
         HttpServer $server,
         \Swoole\HTTP\Request $swooleRequest,
         \Swoole\Http\Response $swooleResponse,
-    ): Context
-    {
+    ): Context {
         $request = new Request($swooleRequest);
 
         return new Context(

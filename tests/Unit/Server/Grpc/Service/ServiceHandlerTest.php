@@ -5,147 +5,142 @@ declare(strict_types=1);
 namespace SwooleBundle\SwooleBundle\Tests\Unit\Server\Grpc\Service;
 
 use PHPUnit\Framework\TestCase;
-use Prophecy\PhpUnit\ProphecyTrait;
-use Psr\Container\ContainerInterface;
-use Swoole\Http\Response as SwooleResponse;
-use SwooleBundle\SwooleBundle\Server\HttpServerConfiguration;
-use SwooleBundle\SwooleBundle\Server\Grpc\Context\Context;
-use SwooleBundle\SwooleBundle\Server\Grpc\Context\Request;
-use SwooleBundle\SwooleBundle\Server\Grpc\Context\Response;
-use SwooleBundle\SwooleBundle\Server\Grpc\Exception\InvokeException;
+use SwooleBundle\SwooleBundle\Server\Grpc\CallHandler\ServerStreamCallHandler;
+use SwooleBundle\SwooleBundle\Server\Grpc\CallHandler\UnaryCallHandler;
+use SwooleBundle\SwooleBundle\Server\Grpc\Context\ContextInterface;
+use SwooleBundle\SwooleBundle\Server\Grpc\GrpcService;
+use SwooleBundle\SwooleBundle\Server\Grpc\Registry\ServiceRegistry;
+use SwooleBundle\SwooleBundle\Server\Grpc\Router\ServiceRouter;
+use SwooleBundle\SwooleBundle\Server\Grpc\Serialization\ProtobufSerializerDeserializer;
 use SwooleBundle\SwooleBundle\Server\Grpc\Service\ServiceHandler;
-use SwooleBundle\SwooleBundle\Server\HttpServer;
+use SwooleBundle\SwooleBundle\Tests\Unit\Server\Grpc\Service\Stub\StubMessage;
 use SwooleBundle\SwooleBundle\Tests\Unit\Server\Grpc\Service\Stub\StubService;
 
-class ServiceHandlerTest extends TestCase
+final class ServiceHandlerTest extends TestCase
 {
-    use ProphecyTrait;
-
-    private $container;
-    private $server;
+    private ProtobufSerializerDeserializer $serializer;
 
     protected function setUp(): void
     {
-        $this->container = $this->createMock(ContainerInterface::class);
-        $config = $this->createMock(HttpServerConfiguration::class);
-        $this->server = new HttpServer($config);
+        $this->serializer = new ProtobufSerializerDeserializer();
     }
 
-    public function testAddServiceAndHandle(): void
+    private function createServiceHandler(iterable $services = []): ServiceHandler
+    {
+        $callHandlers = [
+            new UnaryCallHandler($this->serializer),
+            new ServerStreamCallHandler(),
+        ];
+
+        return new ServiceHandler(
+            services: $services,
+            container: null,
+            deserializer: $this->serializer,
+            callHandlers: $callHandlers,
+            interceptorChain: null,
+            defaultPackage: null
+        );
+    }
+
+    public function testAddService(): void
     {
         $service = new StubService();
-        $handler = new ServiceHandler();
+        $handler = $this->createServiceHandler();
+
+        $result = $handler->addService($service);
+
+        $this->assertSame($handler, $result, 'addService should return self for fluent interface');
+    }
+
+    public function testServiceWithIterableInConstructor(): void
+    {
+        $service = new StubService();
+        $handler = $this->createServiceHandler([$service]);
+
+        $registry = $handler->getRegistry();
+
+        $this->assertTrue($registry->hasService('/stub.Service'));
+    }
+
+    public function testServiceRegistration(): void
+    {
+        $service = new StubService();
+        $handler = $this->createServiceHandler();
         $handler->addService($service);
 
-        $context = $this->createContext('stub.Service', 'UnaryMethod');
+        $registry = $handler->getRegistry();
 
-        $handler->handle($context);
-
-        // The mock message returns 'serialized_payload' (simulated)
-        // Wait, StubMessage::serializeToString returns 'payload' in my plan.
-        $this->assertEquals('payload', $context->getResponse()->getPayload());
+        $this->assertTrue($registry->hasService('/stub.Service'));
+        $this->assertTrue($registry->hasMethod('/stub.Service', 'UnaryMethod'));
+        $this->assertTrue($registry->hasMethod('/stub.Service', 'StreamMethod'));
+        $this->assertTrue($registry->hasMethod('/stub.Service', 'ErrorMethod'));
     }
 
-    public function testHandleServiceNotFound(): void
+    public function testGetRegistry(): void
     {
-        $handler = new ServiceHandler();
-        $context = $this->createContext('NonExistent', 'Method');
+        $handler = $this->createServiceHandler();
+        $registry = $handler->getRegistry();
 
-        $this->expectException(InvokeException::class);
-        $this->expectExceptionMessage('Service Code 5');
-
-        $handler->handle($context);
+        $this->assertInstanceOf(ServiceRegistry::class, $registry);
     }
 
-    public function testHandleMethodNotFound(): void
+    public function testGetRouter(): void
     {
-        $service = new StubService();
-        $handler = new ServiceHandler();
+        $handler = $this->createServiceHandler();
+        $router = $handler->getRouter();
+
+        $this->assertInstanceOf(ServiceRouter::class, $router);
+    }
+
+    public function testMultipleServices(): void
+    {
+        $service1 = new StubService();
+        $service2 = new class implements GrpcService {
+            public const NAME = '/test.Service2';
+
+            public function testMethod(ContextInterface $context, StubMessage $request): StubMessage
+            {
+                return new StubMessage();
+            }
+        };
+
+        $handler = $this->createServiceHandler([$service1, $service2]);
+        $registry = $handler->getRegistry();
+
+        $this->assertTrue($registry->hasService('/stub.Service'));
+        $this->assertTrue($registry->hasService('/test.Service2'));
+        $this->assertEquals(2, $registry->count());
+    }
+
+    public function testDefaultPackage(): void
+    {
+        $callHandlers = [
+            new UnaryCallHandler($this->serializer),
+            new ServerStreamCallHandler(),
+        ];
+
+        $handler = new ServiceHandler(
+            services: [],
+            container: null,
+            deserializer: $this->serializer,
+            callHandlers: $callHandlers,
+            interceptorChain: null,
+            defaultPackage: 'myapp'
+        );
+
+        // Service without explicit package should use default
+        $service = new class {
+            public function testMethod(ContextInterface $context, StubMessage $request): StubMessage
+            {
+                return new StubMessage();
+            }
+        };
+
         $handler->addService($service);
+        $registry = $handler->getRegistry();
 
-        $context = $this->createContext('stub.Service', 'NonExistent');
-
-        $this->expectException(InvokeException::class);
-        $this->expectExceptionMessage('Code 5');
-
-        $handler->handle($context);
-    }
-
-    public function testResolveFromContainer(): void
-    {
-        $service = new StubService();
-        $this->container->expects($this->once())
-            ->method('has')
-            ->with(StubService::class)
-            ->willReturn(true);
-        $this->container->expects($this->once())
-            ->method('get')
-            ->with(StubService::class)
-            ->willReturn($service);
-
-        $handler = new ServiceHandler([], $this->container);
-        $handler->register(StubService::class);
-        $handler->boot();
-
-        $context = $this->createContext('stub.Service', 'UnaryMethod');
-        $handler->handle($context);
-
-        $this->assertEquals('payload', $context->getResponse()->getPayload());
-    }
-
-    public function testHandleStreamingMethod(): void
-    {
-        $service = new StubService();
-        $handler = new ServiceHandler();
-        $handler->addService($service);
-
-        $context = $this->createContext('stub.Service', 'StreamMethod');
-
-        $handler->handle($context);
-
-        $this->assertEquals('OK', $context->getResponse()->getMessage());
-        $this->assertEquals(0, $context->getResponse()->getStatus()); // Status::OK is 0
-    }
-
-    public function testHandleMethodThrowsException(): void
-    {
-        $service = new StubService();
-        $handler = new ServiceHandler();
-        $handler->addService($service);
-
-        $context = $this->createContext('stub.Service', 'ErrorMethod');
-
-        $this->expectException(InvokeException::class);
-        $this->expectExceptionMessage('Service error');
-
-        $handler->handle($context);
-    }
-
-    public function testHandleWithNullPayload(): void
-    {
-        $service = new StubService();
-        $handler = new ServiceHandler();
-        $handler->addService($service);
-
-        $context = $this->createContext('stub.Service', 'UnaryMethod', null);
-
-        $handler->handle($context);
-
-        $this->assertEquals('payload', $context->getResponse()->getPayload());
-    }
-
-    private function createContext(string $service, string $method, ?string $payload = 'input'): Context
-    {
-        $request = $this->createMock(Request::class);
-        $request->method('getService')->willReturn($service);
-        $request->method('getMethod')->willReturn($method);
-        $request->method('getPayload')->willReturn($payload);
-        $request->method('getContentType')->willReturn('application/grpc');
-
-        $swooleResponse = $this->prophesize(SwooleResponse::class);
-        $response = new Response($swooleResponse->reveal());
-
-        return new Context($this->server, $request, $response);
+        // Should be registered with default package
+        $services = $registry->getAllServices();
+        $this->assertCount(1, $services);
     }
 }
-

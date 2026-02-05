@@ -12,7 +12,6 @@ use Throwable;
  * Class GRPCException
  *
  * Base exception for gRPC errors, providing a static factory for creation.
- * todo: do we need this, use smthing from bundle ?!
  */
 class GRPCException extends RuntimeException
 {
@@ -20,32 +19,21 @@ class GRPCException extends RuntimeException
 
     /**
      * GRPCException constructor.
-     *
-     * @param string $message
-     * @param int|null $code
-     * @param Throwable|null $previous
      */
-    final public function __construct(
+    public function __construct(
         string $message = '',
         ?int $code = null,
         ?Throwable $previous = null,
     ) {
-        parent::__construct($message, (int) ($code ?? static::CODE), $previous);
+        parent::__construct($message, (int) ($code ?? self::CODE), $previous);
     }
 
     /**
      * Create a new GRPCException instance.
      *
-     * @param string $message
-     * @param int|null $code
-     * @param Throwable|null $previous
      * @return static
      */
-    public static function create(
-        string $message,
-        ?int $code = null,
-        ?Throwable $previous = null,
-    ): self {
+    public static function create(string $message, ?int $code = null, ?Throwable $previous = null,): self {
         return new static($message, $code, $previous);
     }
 }

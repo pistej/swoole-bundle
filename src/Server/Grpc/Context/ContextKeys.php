@@ -9,10 +9,35 @@ namespace SwooleBundle\SwooleBundle\Server\Grpc\Context;
  *
  * Defines constant keys used for storing and retrieving context-related data.
  */
-class ContextKeys
+final class ContextKeys
 {
     /**
      * Key for the service method definition in the context.
      */
     public const SERVICE_METHOD_DEFINITION = 'service-method-definition';
+
+    /**
+     * Key for the service name.
+     */
+    public const SERVICE_NAME = 'service-name';
+
+    /**
+     * Key for the method name.
+     */
+    public const METHOD_NAME = 'method-name';
+
+    /**
+     * Key for cache hit indicator.
+     */
+    public const CACHE_HIT = 'cache-hit';
+
+    /**
+     * Key for request start time.
+     */
+    public const REQUEST_START_TIME = 'request-start-time';
+
+    /**
+     * Key for custom metadata.
+     */
+    public const METADATA = 'metadata';
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SwooleBundle\SwooleBundle\Server\Grpc\Service;
 
 use ReflectionClass;
+use ReflectionException;
 use ReflectionFunctionAbstract;
 use ReflectionMethod;
 use ReflectionObject;
@@ -19,14 +20,14 @@ use SwooleBundle\SwooleBundle\Server\Grpc\Exception\ServiceException;
  *
  * Scans a service instance for valid gRPC methods and returns their definitions.
  */
-class ServiceMethodScanner
+final readonly class ServiceMethodScanner
 {
     /**
      * ServiceMethodScanner constructor.
      *
      * @param object $instance The service instance to scan for gRPC methods.
      */
-    public function __construct(protected object $instance)
+    public function __construct(private object $instance)
     {
     }
 
@@ -43,22 +44,32 @@ class ServiceMethodScanner
         $methods = [];
         foreach ($reflection->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
             // Check if its a gRPC method before doing this check
-
-            if (count($method->getParameters()) > 0 && $method->getParameters()[0]->getType()->getName() == ContextInterface::class) {
-                // This is a gRPC method
-                $numParameters = $method->getNumberOfParameters();
-                if ($numParameters < 2 || $numParameters > 3) {
-                    throw new ServiceException('error method');
-                }
-
-                if ($numParameters === 2) {
-                    $methods[$method->getName()] = $this->parseUnaryMethod($method);
-                }
-
-                if ($numParameters === 3) {
-                    $methods[$method->getName()] = $this->parseStreamMethod($method);
-                }
+            if (count($method->getParameters()) <= 0) {
+                continue;
             }
+
+            $firstParam = $method->getParameters()[0];
+            $firstParamType = $firstParam->getType();
+
+            if ($firstParamType === null || $firstParamType->getName() !== ContextInterface::class) {
+                continue;
+            }
+
+            // This is a gRPC method
+            $numParameters = $method->getNumberOfParameters();
+            if ($numParameters < 2 || $numParameters > 3) {
+                throw new ServiceException('error method');
+            }
+
+            if ($numParameters === 2) {
+                $methods[$method->getName()] = $this->parseUnaryMethod($method);
+            }
+
+            if ($numParameters !== 3) {
+                continue;
+            }
+
+            $methods[$method->getName()] = $this->parseStreamMethod($method);
         }
 
         return $methods;
@@ -73,16 +84,25 @@ class ServiceMethodScanner
      */
     private function parseUnaryMethod(ReflectionFunctionAbstract $method): ServiceMethodDefinition
     {
-        [, $input]  = $method->getParameters();
+        [, $input] = $method->getParameters();
         $returnType = $method->getReturnType();
 
         if ($returnType instanceof ReflectionUnionType) {
             throw new ServiceException('error method: can\'t have union return type');
         }
 
+        $inputType = $input->getType();
+        if ($inputType === null) {
+            throw new ServiceException("error method({$method->getName()}): input parameter must have a type");
+        }
+
+        if ($returnType === null) {
+            throw new ServiceException("error method({$method->getName()}): method must have a return type");
+        }
+
         return new ServiceMethodDefinition(
             name: $method->getName(),
-            paramType: $input->getType()->getName(),
+            paramType: $inputType->getName(),
             returnType: $returnType->getName(),
             type: Constant::GRPC_CALL_TYPE_UNARY
         );
@@ -98,27 +118,38 @@ class ServiceMethodScanner
     private function parseStreamMethod(ReflectionFunctionAbstract $method): ServiceMethodDefinition
     {
         [, $input, $output] = $method->getParameters();
-        // var_dump($input->getType(), $output->getType()->getName);
         $returnType = $method->getReturnType();
 
-        if ($returnType->getName() !== 'void') {
+        if ($returnType === null || $returnType->getName() !== 'void') {
             throw new ServiceException(
                 "error method({$method->getName()}): since its stream response, should return void"
             );
         }
 
-        $outputClassName = $output->getType()->getName();
-
-        if (!in_array(StreamResponseInterface::class, class_implements($outputClassName))) {
-            throw new ServiceException("error method({$method->getName()}): since its stream response, the third parameter should implement " . StreamResponseInterface::class);
+        $outputType = $output->getType();
+        if ($outputType === null) {
+            throw new ServiceException("error method({$method->getName()}): output parameter must have a type");
         }
 
-        $outputType = $this->retreiveSendParameterType($outputClassName);
+        $outputClassName = $outputType->getName();
+
+        if (!in_array(StreamResponseInterface::class, class_implements($outputClassName) ?: [], true)) {
+            throw new ServiceException(
+                "error method({$method->getName()}): since its stream response, the third parameter should implement " . StreamResponseInterface::class
+            );
+        }
+
+        $outputReturnType = $this->retrieveSendParameterType($outputClassName);
+
+        $inputType = $input->getType();
+        if ($inputType === null) {
+            throw new ServiceException("error method({$method->getName()}): input parameter must have a type");
+        }
 
         return new ServiceMethodDefinition(
             name: $method->getName(),
-            paramType: $input->getType()->getName(),
-            returnType: $outputType,
+            paramType: $inputType->getName(),
+            returnType: $outputReturnType,
             type: Constant::GRPC_CALL_TYPE_STREAM,
             streamType: $outputClassName
         );
@@ -129,8 +160,9 @@ class ServiceMethodScanner
      *
      * @param string $className the class name implementing StreamResponseInterface
      * @return string the type name of the send() method's parameter
+     * @throws ReflectionException
      */
-    private function retreiveSendParameterType(string $className): string
+    private function retrieveSendParameterType(string $className): string
     {
         $rc = new ReflectionClass($className);
 
@@ -138,6 +170,11 @@ class ServiceMethodScanner
 
         [$msg] = $send->getParameters();
 
-        return $msg->getType()->getName();
+        $type = $msg->getType();
+        if ($type === null) {
+            throw new ServiceException("send() method parameter must have a type in {$className}");
+        }
+
+        return $type->getName();
     }
 }

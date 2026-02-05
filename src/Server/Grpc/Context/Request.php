@@ -13,15 +13,15 @@ use SwooleBundle\SwooleBundle\Server\Grpc\Status;
  *
  * Represents a gRPC request, providing access to service, method, payload, and headers.
  */
-class Request
+final class Request
 {
     protected string $contentType = '';
 
-    protected string $payload;
+    protected string $payload = '';
 
-    protected string $service;
+    protected string $service = '';
 
-    protected string $method;
+    protected string $method = '';
 
     /**
      * Request constructor.
@@ -30,45 +30,36 @@ class Request
      */
     public function __construct(protected HttpRequest $rawRequest)
     {
-        //constructor
     }
 
     /**
      * Get the gRPC service name from the request URI.
-     *
-     * @return string|null
      */
-    public function getService()
+    public function getService(): string
     {
         return $this->service;
     }
 
     /**
      * Get the gRPC method name from the request URI.
-     *
-     * @return string|null
      */
-    public function getMethod()
+    public function getMethod(): string
     {
         return $this->method;
     }
 
     /**
      * Get the request payload.
-     *
-     * @return string|null
      */
-    public function getPayload()
+    public function getPayload(): string
     {
         return $this->payload;
     }
 
     /**
      * Get the content-type header from the request.
-     *
-     * @return string
      */
-    public function getContentType()
+    public function getContentType(): string
     {
         return $this->contentType;
     }
@@ -95,11 +86,11 @@ class Request
      */
     protected function parseRequest(): static
     {
-        [, $service, $method]   = explode('/', $this->rawRequest->server['request_uri'] ?? '');
+        [, $service, $method] = explode('/', $this->rawRequest->server['request_uri'] ?? '');
 
-        $this->service          = '/' . $service;
-        $this->payload          = $this->rawRequest->getContent() ? substr($this->rawRequest->getContent(), 5) : '';
-        $this->method           = $method;
+        $this->service = '/' . $service;
+        $this->payload = $this->rawRequest->getContent() ? substr($this->rawRequest->getContent(), 5) : '';
+        $this->method = $method;
 
         return $this;
     }
@@ -121,7 +112,10 @@ class Request
             && $this->rawRequest->header['content-type'] !== 'application/grpc+proto'
             && $this->rawRequest->header['content-type'] !== 'application/grpc+json'
         ) {
-            throw InvokeException::create("Content-type not supported: {$this->rawRequest->header['content-type']}", Status::INTERNAL);
+            throw InvokeException::create(
+                "Content-type not supported: {$this->rawRequest->header['content-type']}",
+                Status::INTERNAL
+            );
         }
 
         $this->contentType = $this->rawRequest->header['content-type'] ?? '';

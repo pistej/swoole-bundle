@@ -8,9 +8,9 @@ use Exception;
 use SwooleBundle\SwooleBundle\Server\Grpc\Context\ContextInterface;
 use SwooleBundle\SwooleBundle\Server\Grpc\GrpcService;
 
-class StubService implements GrpcService
+final class StubService implements GrpcService
 {
-    public const NAME = 'stub.Service';
+    public const NAME = '/stub.Service';
 
     public function UnaryMethod(ContextInterface $context, StubMessage $request): StubMessage
     {

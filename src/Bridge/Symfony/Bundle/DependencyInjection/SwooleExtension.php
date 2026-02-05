@@ -141,6 +141,7 @@ use ZEngine\Core;
  *     enabled: bool,
  *     host: string,
  *     port: int,
+ *     default_package: string|null,
  *   },
  *   hmr: HmrConfig,
  *   host: string,
@@ -287,6 +288,7 @@ final class SwooleExtension extends Extension
         $container->setParameter('swoole.http_server.api.port', $config['api']['port']);
         $container->setParameter('swoole.http_server.grpc.host', $config['grpc']['host']);
         $container->setParameter('swoole.http_server.grpc.port', $config['grpc']['port']);
+        $container->setParameter('swoole_bundle.grpc.default_package', $config['grpc']['default_package']);
 
         return $this->prepareHttpServerConfiguration($config, $container);
     }

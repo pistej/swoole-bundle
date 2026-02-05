@@ -9,7 +9,7 @@ namespace SwooleBundle\SwooleBundle\Server\Grpc\Context;
  *
  * Represents a gRPC response, providing access to status, message, payload, and the underlying Swoole response.
  */
-class Response
+final class Response
 {
     private int $status = 0;
 
@@ -22,11 +22,6 @@ class Response
      *
      * @param \Swoole\Http\Response $rawResponse the underlying Swoole HTTP response object
      */
-    /**
-     * Response constructor.
-     *
-     * @param \Swoole\Http\Response $rawResponse the underlying Swoole HTTP response object
-     */
     public function __construct(
         protected \Swoole\Http\Response $rawResponse,
     ) {
@@ -34,13 +29,6 @@ class Response
 
     /**
      * Get the response status code.
-     *
-     * @return int the status code
-     */
-    /**
-     * Get the response status code.
-     *
-     * @return int the status code
      */
     public function getStatus(): int
     {
@@ -49,8 +37,6 @@ class Response
 
     /**
      * Get the response message.
-     *
-     * @return string the message
      */
     public function getMessage(): string
     {
@@ -59,8 +45,6 @@ class Response
 
     /**
      * Set the response status code.
-     *
-     * @param int $status the status code to set
      */
     public function withStatus(int $status): self
     {
@@ -70,8 +54,6 @@ class Response
 
     /**
      * Set the response message.
-     *
-     * @param string $message the message to set
      */
     public function withMessage(string $message): self
     {
@@ -89,21 +71,16 @@ class Response
 
     /**
      * Get the response payload.
-     *
-     * @return string the payload
      */
-    public function getPayload()
+    public function getPayload(): string
     {
         return $this->payload;
     }
 
     /**
      * Set the response payload.
-     *
-     * @param string $payload the payload to set
-     * @return self
      */
-    public function setPayload(string $payload)
+    public function setPayload(string $payload): self
     {
         $this->payload = $payload;
 

@@ -16,7 +16,7 @@ use SwooleBundle\SwooleBundle\Server\HttpServer;
  * Represents the context for a gRPC call, holding server, request, response, and attributes.
  * Provides methods to manipulate and retrieve context data throughout the request lifecycle.
  */
-class Context implements ContextInterface
+final class Context implements ContextInterface
 {
     protected array $attributes = [];
 

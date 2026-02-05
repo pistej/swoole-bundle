@@ -4,46 +4,59 @@ declare(strict_types=1);
 
 namespace SwooleBundle\SwooleBundle\Server\Grpc\Service;
 
-use Google\Protobuf\Internal\Message;
-use SwooleBundle\SwooleBundle\Server\Grpc\Constant;
+use Psr\Container\ContainerInterface;
+use SwooleBundle\SwooleBundle\Server\Grpc\CallHandler\CallHandler;
 use SwooleBundle\SwooleBundle\Server\Grpc\Context\Context;
 use SwooleBundle\SwooleBundle\Server\Grpc\Context\ContextKeys;
-use SwooleBundle\SwooleBundle\Server\Grpc\Exception\InvokeException;
 use SwooleBundle\SwooleBundle\Server\Grpc\Exception\ServiceException;
-use SwooleBundle\SwooleBundle\Server\Grpc\GrpcService;
-use SwooleBundle\SwooleBundle\Server\Grpc\Status;
-use Throwable;
-use TypeError;
-use Psr\Container\ContainerInterface;
+use SwooleBundle\SwooleBundle\Server\Grpc\Interceptor\InterceptorChain;
+use SwooleBundle\SwooleBundle\Server\Grpc\Registry\ServiceRegistry;
+use SwooleBundle\SwooleBundle\Server\Grpc\Router\ServiceRouter;
+use SwooleBundle\SwooleBundle\Server\Grpc\Serialization\PayloadDeserializer;
 
 /**
- * Class ServiceHandler
+ * Refactored ServiceHandler with modern architecture.
  *
- * Handles registration, resolution, and invocation of gRPC service methods.
+ * Uses Registry, Router, CallHandler strategy, and Interceptor pattern.
+ * Supports both interface-based and attribute-based service configuration.
  */
-class ServiceHandler
+final class ServiceHandler
 {
-    protected array $services = [];
-
-    protected array $abstracts = [];
+    private ServiceRegistry $registry;
+    private ServiceRouter $router;
+    private ServiceNameResolver $nameResolver;
 
     /**
-     * list of services method
-     *
-     * @var ServiceMethodDefinition
+     * @var array<CallHandler>
      */
-    protected array $methods = [];
+    private array $callHandlers = [];
 
     /**
      * ServiceHandler constructor.
      *
-     * @param iterable<GrpcService> $services List of service instances.
+     * @param iterable<object> $services List of service instances.
      * @param ContainerInterface|null $container Optional PSR container for dependency resolution.
+     * @param PayloadDeserializer $deserializer Payload deserializer
+     * @param iterable<CallHandler> $callHandlers Call handlers for different call types
+     * @param InterceptorChain|null $interceptorChain Optional interceptor chain
+     * @param string|null $defaultPackage Default package name for services (e.g., 'myapp')
      */
     public function __construct(
-        iterable $services = [],
-        protected ?ContainerInterface $container = null,
+        iterable $services,
+        private ?ContainerInterface $container,
+        private readonly PayloadDeserializer $deserializer,
+        iterable $callHandlers = [],
+        private readonly ?InterceptorChain $interceptorChain = null,
+        ?string $defaultPackage = null,
     ) {
+        $this->registry = new ServiceRegistry();
+        $this->router = new ServiceRouter($this->registry);
+        $this->nameResolver = new ServiceNameResolver($defaultPackage);
+
+        foreach ($callHandlers as $handler) {
+            $this->callHandlers[] = $handler;
+        }
+
         foreach ($services as $service) {
             $this->addService($service);
         }
@@ -66,148 +79,90 @@ class ServiceHandler
     }
 
     /**
-     * Register a service class for later resolution.
-     *
-     * @template T
-     * @param class-string<T>|string $abstract
+     * Get the service registry.
      */
-    public function register(string $abstract): self
+    public function getRegistry(): ServiceRegistry
     {
-        $this->abstracts[] = $abstract;
-
-        return $this;
+        return $this->registry;
     }
 
     /**
-     * Boot all registered services and collect their methods.
+     * Get the service router.
      */
-    public function boot(): self
+    public function getRouter(): ServiceRouter
     {
-        foreach ($this->abstracts as $service) {
-            $this->add($service);
-        }
-
-        return $this;
+        return $this->router;
     }
 
     /**
      * Add a service instance to the handler.
+     *
+     * Supports both interface-based (GrpcService) and attribute-based (#[GrpcService]) services.
      */
-    public function addService(GrpcService $service): self
+    public function addService(object $service): self
     {
-        $this->services[$service::NAME] = $service;
-        $this->methods[$service::NAME] = $this->discoverMethods($service);
+        $serviceName = $this->nameResolver->resolve($service);
+        $methods = $this->discoverMethods($service);
+        $this->registry->register($service, $serviceName, $methods);
 
         return $this;
     }
 
     /**
      * Handle a gRPC request by dispatching to the appropriate service method.
-     *
-     * @param Context $context
-     * @return Context
      */
     public function handle(Context $context): Context
     {
         $serviceName = $context->getRequest()->getService();
-        $method      = $context->getRequest()->getMethod();
-        $input       = $context->getRequest()->getPayload();
+        $methodName = $context->getRequest()->getMethod();
 
-        [$service, $serviceMethodDefinition] = $this->checkIfServiceAvailable($serviceName, $method);
+        // Route the request to find service and method definition
+        [$service, $methodDefinition] = $this->router->route($serviceName, $methodName);
 
-        $context->withAttribute(ContextKeys::SERVICE_METHOD_DEFINITION, $serviceMethodDefinition);
+        // Store method definition in context
+        $context->withAttribute(ContextKeys::SERVICE_METHOD_DEFINITION, $methodDefinition);
 
-        $callable = [$service, $method];
+        // Deserialize the request payload
+        $payload = $context->getRequest()->getPayload();
+        $message = $this->deserializer->deserialize($payload ?? '', $methodDefinition->paramType, $context);
 
-        $paramTypeClass = $serviceMethodDefinition->paramType;
+        // Find appropriate call handler
+        $callHandler = $this->findCallHandler($methodDefinition);
 
-        /**
-         * @var Message $message
-         */
-        $message = new $paramTypeClass();
+        // Define the handler callable
+        $handler = static fn(Context $ctx) => $callHandler->handle($ctx, $service, $methodDefinition, $message);
 
-        if ($input !== null) {
-            if ($context->getRequest()->getContentType() !== 'application/grpc+json') {
-                $message->mergeFromString($input);
-            } else {
-                $message->mergeFromJsonString($input);
-            }
+        // Execute with interceptor chain if available
+        if ($this->interceptorChain !== null) {
+            return $this->interceptorChain->execute($context, $handler);
         }
 
-        $output = '';
-        if ($serviceMethodDefinition->type === Constant::GRPC_CALL_TYPE_STREAM) {
-            $streamReply = new ($serviceMethodDefinition->streamType)($context);
-            try {
-                $result = $callable($context, $message, $streamReply);
-            } catch (TypeError $e) {
-                throw InvokeException::create($e->getMessage(), Status::INTERNAL, $e);
-            }
-            $output = '';
-            $context->getResponse()->withMessage('OK')->withStatus(Status::OK);
-        } else {
-            try {
-                $result = $callable($context, $message);
-                $output = $context->getRequest()->getContentType() !== 'application/grpc+json'
-                    ? $result->serializeToString()
-                    : $result->serializeToJsonString();
-            } catch (TypeError $e) {
-                throw InvokeException::create($e->getMessage(), Status::INTERNAL, $e);
-            } catch (Throwable $e) {
-                throw InvokeException::create($e->getMessage(), Status::INTERNAL, $e);
-            }
-        }
-
-        $context->getResponse()->setPayload($output);
-
-        return $context;
+        return $handler($context);
     }
 
     /**
-     * Check if the requested service and method are available.
+     * Find the appropriate call handler for a method definition.
      *
-     * @param string $serviceName
-     * @param string $method
-     * @return array{0: GrpcService, 1: ServiceMethodDefinition}
-     * @throws InvokeException If the service or method is not found.
+     * @throws ServiceException if no handler found
      */
-    protected function checkIfServiceAvailable(string $serviceName, string $method): array
+    private function findCallHandler(ServiceMethodDefinition $methodDefinition): CallHandler
     {
-        if (!array_key_exists($serviceName, $this->services)) {
-            throw InvokeException::create('Service Code 5', Status::NOT_FOUND);
+        foreach ($this->callHandlers as $handler) {
+            if ($handler->supports($methodDefinition)) {
+                return $handler;
+            }
         }
 
-        if (!array_key_exists($method, $this->methods[$serviceName] ?? [])) {
-            throw InvokeException::create('Method Code 5', Status::NOT_FOUND);
-        }
-
-        return [$this->services[$serviceName], $this->methods[$serviceName][$method]];
+        throw new ServiceException("No call handler found for method type: {$methodDefinition->type}");
     }
 
     /**
      * Discover gRPC methods on the given service instance.
      *
-     * @param object $instance
      * @return array<string, ServiceMethodDefinition>
      */
-    protected function discoverMethods(object $instance): array
+    private function discoverMethods(object $instance): array
     {
         return (new ServiceMethodScanner($instance))->getMethods();
-    }
-
-    /**
-     * Add a service to the handler and discover its methods.
-     *
-     * @param string $abstract
-     * @return self
-     * @throws \Bardiz12\SwooleGRPC\Exception\ServiceException If the service does not implement GrpcService.
-     */
-    private function add(string $abstract): self
-    {
-        $service = $this->resolve($abstract);
-        if (!($service instanceof GrpcService)) {
-            throw new ServiceException("{$abstract} is not GrpcService");
-        }
-
-        return $this->addService($service);
     }
 }
