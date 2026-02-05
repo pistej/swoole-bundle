@@ -35,6 +35,8 @@ use SwooleBundle\SwooleBundle\Server\Config\Sockets;
  *   log_level?: string,
  *   user?: string,
  *   group?: string,
+ *   open_http2_protocol?: bool,
+ *   open_tcp_nodelay?: bool,
  * }
  * @phpstan-import-type SwooleSettingsShape from HttpServerConfiguration
  * @todo Create interface and split this class

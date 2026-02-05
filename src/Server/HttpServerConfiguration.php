@@ -34,6 +34,8 @@ use SwooleBundle\SwooleBundle\Server\Config\Sockets;
  *   group?: string,
  *   http_compression: bool,
  *   http_compression_level: int,
+ *   open_http2_protocol: bool,
+ *   open_tcp_nodelay: bool,
  * }
  */
 interface HttpServerConfiguration
