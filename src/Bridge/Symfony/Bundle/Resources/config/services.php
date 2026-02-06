@@ -402,7 +402,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         ->arg('$logger', service('logger'))
         ->tag('monolog.logger', ['channel' => 'grpc']);
 
-    // gRPC Interceptors (optional, can be enabled via configuration)
+    // gRPC Interceptors
     $services->set(LoggingInterceptor::class)
         ->arg('$logger', service('logger'))
         ->arg('$priority', 100)
@@ -420,7 +420,8 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         ->arg('$deserializer', service(PayloadDeserializer::class))
         ->arg('$callHandlers', tagged_iterator('grpc.call_handler'))
         ->arg('$interceptorChain', service(InterceptorChain::class))
-        ->arg('$defaultPackage', param('swoole_bundle.grpc.default_package'));
+        ->arg('$defaultPackage', param('swoole_bundle.grpc.default_package'))
+        ->arg('$interceptorsEnabled', param('swoole_bundle.grpc.interceptors'));
 
     // gRPC Request Handler
     $services->set(GrpcServerRequestHandler::class)

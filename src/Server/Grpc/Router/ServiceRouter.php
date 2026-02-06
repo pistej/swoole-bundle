@@ -12,7 +12,7 @@ use SwooleBundle\SwooleBundle\Server\Grpc\ValueObject\MethodName;
 use SwooleBundle\SwooleBundle\Server\Grpc\ValueObject\ServiceName;
 
 /**
- * Router for resolving gRPC service methods.
+ * Router for resolving gRPC service methods with package validation.
  */
 final readonly class ServiceRouter
 {
@@ -23,9 +23,10 @@ final readonly class ServiceRouter
 
     /**
      * Route a request to the appropriate service and method.
+     * Validates that the service exists and optionally validates package.
      *
      * @return array{0: object, 1: ServiceMethodDefinition}
-     * @throws InvokeException if service or method not found
+     * @throws InvokeException if service or method not found or package validation fails
      */
     public function route(ServiceName|string $serviceName, MethodName|string $methodName): array
     {
@@ -33,6 +34,22 @@ final readonly class ServiceRouter
         $method = $methodName instanceof MethodName ? $methodName->toString() : $methodName;
 
         if (!$this->registry->hasService($service)) {
+            $requestedPackage = $this->registry->extractPackage($service);
+
+            if ($requestedPackage !== null) {
+                if (!$this->registry->hasPackage($requestedPackage)) {
+                    throw InvokeException::create(
+                        "Package not found: '{$requestedPackage}'. Service '{$service}' is not registered.",
+                        Status::NOT_FOUND
+                    );
+                }
+
+                throw InvokeException::create(
+                    "Service not found: '{$service}'. Requested package: '{$requestedPackage}'.",
+                    Status::NOT_FOUND
+                );
+            }
+
             throw InvokeException::create("Service not found: {$service}", Status::NOT_FOUND);
         }
 

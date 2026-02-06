@@ -77,6 +77,8 @@ swoole:
     #     enabled: true
     #     host: 0.0.0.0
     #     port: 9503
+    #     default_package: 'myapp'
+    #     interceptors: true  # Enable for logging, metrics, etc.
 
     # additional swoole symfony bundle services
     services:

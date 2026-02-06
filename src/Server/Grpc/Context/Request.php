@@ -86,11 +86,36 @@ final class Request
      */
     protected function parseRequest(): static
     {
-        [, $service, $method] = explode('/', $this->rawRequest->server['request_uri'] ?? '');
+        $requestUri = $this->rawRequest->server['request_uri'] ?? '';
+
+        if (empty($requestUri)) {
+            throw InvokeException::create('Invalid gRPC request: empty request URI', Status::INVALID_ARGUMENT);
+        }
+
+        $parts = explode('/', trim($requestUri, '/'));
+
+        if (count($parts) < 2) {
+            throw InvokeException::create(
+                'Invalid gRPC request URI format. Expected: /Service/Method or /package.Service/Method',
+                Status::INVALID_ARGUMENT
+            );
+        }
+
+        [$service, $method] = $parts;
+
+        if (empty($service) || empty($method)) {
+            throw InvokeException::create(
+                'Invalid gRPC request: empty service or method name',
+                Status::INVALID_ARGUMENT
+            );
+        }
 
         $this->service = '/' . $service;
-        $this->payload = $this->rawRequest->getContent() ? substr($this->rawRequest->getContent(), 5) : '';
         $this->method = $method;
+
+        // Parse payload (skip first 5 bytes which are gRPC framing)
+        $content = $this->rawRequest->getContent();
+        $this->payload = $content ? substr($content, 5) : '';
 
         return $this;
     }
@@ -104,7 +129,7 @@ final class Request
     protected function validateRequest(): static
     {
         if (!isset($this->rawRequest->header['content-type']) || !isset($this->rawRequest->header['te'])) {
-            throw InvokeException::create('illegal GRPC request, missing content-type or te header');
+            throw InvokeException::create('Illegal GRPC request, missing content-type or te header');
         }
 
         if (

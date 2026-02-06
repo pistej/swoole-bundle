@@ -40,6 +40,7 @@ final class ServiceHandler
      * @param iterable<CallHandler> $callHandlers Call handlers for different call types
      * @param InterceptorChain|null $interceptorChain Optional interceptor chain
      * @param string|null $defaultPackage Default package name for services (e.g., 'myapp')
+     * @param bool $interceptorsEnabled Whether to use interceptors (default: false)
      */
     public function __construct(
         iterable $services,
@@ -48,6 +49,7 @@ final class ServiceHandler
         iterable $callHandlers = [],
         private readonly ?InterceptorChain $interceptorChain = null,
         ?string $defaultPackage = null,
+        private readonly bool $interceptorsEnabled = false,
     ) {
         $this->registry = new ServiceRegistry();
         $this->router = new ServiceRouter($this->registry);
@@ -124,7 +126,7 @@ final class ServiceHandler
 
         // Deserialize the request payload
         $payload = $context->getRequest()->getPayload();
-        $message = $this->deserializer->deserialize($payload ?? '', $methodDefinition->paramType, $context);
+        $message = $this->deserializer->deserialize($payload, $methodDefinition->paramType, $context);
 
         // Find appropriate call handler
         $callHandler = $this->findCallHandler($methodDefinition);
@@ -132,8 +134,8 @@ final class ServiceHandler
         // Define the handler callable
         $handler = static fn(Context $ctx) => $callHandler->handle($ctx, $service, $methodDefinition, $message);
 
-        // Execute with interceptor chain if available
-        if ($this->interceptorChain !== null) {
+        // Execute with interceptor chain if enabled and available
+        if ($this->interceptorsEnabled && $this->interceptorChain !== null) {
             return $this->interceptorChain->execute($context, $handler);
         }
 
