@@ -26,11 +26,9 @@ final class ContextFactory
         \Swoole\HTTP\Request $swooleRequest,
         \Swoole\Http\Response $swooleResponse,
     ): Context {
-        $request = new Request($swooleRequest);
-
         return new Context(
             server: $server,
-            request: $request,
+            request: new Request($swooleRequest),
             response: new Response($swooleResponse),
         );
     }
