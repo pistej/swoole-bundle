@@ -423,6 +423,15 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         ->arg('$defaultPackage', param('swoole_bundle.grpc.default_package'))
         ->arg('$interceptorsEnabled', param('swoole_bundle.grpc.interceptors'));
 
+    // gRPC to HTTP Kernel Bridge
+    $services->set(\SwooleBundle\SwooleBundle\Server\Grpc\Factory\HttpFoundationFactory::class);
+
+    $services->set(\SwooleBundle\SwooleBundle\Server\Grpc\Service\GrpcToHttpKernelRequest::class)
+        ->arg('$httpFoundationFactory', service(\SwooleBundle\SwooleBundle\Server\Grpc\Factory\HttpFoundationFactory::class))
+        ->arg('$kernelPool', service(KernelPool::class))
+        ->tag('swoole_bundle.grpc_service')
+        ->tag('swoole_bundle.bootable_service');
+
     // gRPC Request Handler
     $services->set(GrpcServerRequestHandler::class)
         ->arg('$server', service(HttpServer::class))
