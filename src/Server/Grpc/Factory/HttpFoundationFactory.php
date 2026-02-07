@@ -155,8 +155,13 @@ final class HttpFoundationFactory
         // Set protocol version
         $psr7Response->setProtocolVersion($response->getProtocolVersion());
 
-        // Set reason phrase - HttpFoundation doesn't expose this directly, but we can use statusText
-        $psr7Response->setReasonPhrase($response->headers->get('reason-phrase', ''));
+        // Set reason phrase - HttpFoundation doesn't expose this directly
+        // Use empty string as default to avoid issues with placeholder values like "-"
+        $reasonPhrase = $response->headers->get('reason-phrase', '');
+        if ($reasonPhrase === '-' || $reasonPhrase === null) {
+            $reasonPhrase = '';
+        }
+        $psr7Response->setReasonPhrase($reasonPhrase);
 
         // Convert headers (exclude cookies as they're in separate handling)
         $headers = [];

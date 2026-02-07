@@ -111,4 +111,17 @@ final class HttpFoundationFactorySimpleTest extends TestCase
         self::assertSame(204, $psr7Response->getStatusCode());
         self::assertSame('', $psr7Response->getBody());
     }
+
+    public function testConvertResponseWithPlaceholderReasonPhrase(): void
+    {
+        $httpResponse = new HttpFoundationResponse('OK', 200);
+        // Simulate a response with a placeholder value for reason-phrase
+        $httpResponse->headers->set('reason-phrase', '-');
+
+        $psr7Response = $this->factory->convertResponse($httpResponse);
+
+        // Should convert '-' to empty string to avoid protobuf errors
+        self::assertSame('', $psr7Response->getReasonPhrase());
+        self::assertSame(200, $psr7Response->getStatusCode());
+    }
 }

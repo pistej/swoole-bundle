@@ -52,15 +52,35 @@ final class GrpcToHttpKernelRequest implements Bootable
      * 4. Convert Symfony response to PSR-7 response
      * 5. Terminate kernel if it's terminable
      * 6. Return kernel to pool (always, even on exceptions)
+     *
+     * @throws \RuntimeException if conversion fails
      */
     public function HandleRequest(ContextInterface $ctx, Psr7Request $psr7Request): Psr7Response
     {
-        $httpFoundationRequest = $this->httpFoundationFactory->make($psr7Request);
+        try {
+            $httpFoundationRequest = $this->httpFoundationFactory->make($psr7Request);
+        } catch (\Throwable $e) {
+            throw new \RuntimeException(
+                sprintf('Failed to convert PSR-7 request: %s', $e->getMessage()),
+                0,
+                $e
+            );
+        }
+
         $kernel = $this->kernelPool->get();
 
         try {
             $httpFoundationResponse = $kernel->handle($httpFoundationRequest);
-            $psr7Response = $this->httpFoundationFactory->convertResponse($httpFoundationResponse);
+
+            try {
+                $psr7Response = $this->httpFoundationFactory->convertResponse($httpFoundationResponse);
+            } catch (\Throwable $e) {
+                throw new \RuntimeException(
+                    sprintf('Failed to convert response to PSR-7: %s', $e->getMessage()),
+                    0,
+                    $e
+                );
+            }
 
             if ($kernel instanceof TerminableInterface) {
                 $kernel->terminate($httpFoundationRequest, $httpFoundationResponse);
