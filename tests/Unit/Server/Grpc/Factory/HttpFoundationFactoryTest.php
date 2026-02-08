@@ -33,7 +33,7 @@ final class HttpFoundationFactoryTest extends TestCase
         self::assertSame('http://example.com/api/users', $httpRequest->getUri());
         self::assertSame('HTTP/1.1', $httpRequest->server->get('SERVER_PROTOCOL'));
         self::assertSame('example.com', $httpRequest->server->get('SERVER_NAME'));
-        self::assertSame('80', $httpRequest->server->get('SERVER_PORT'));
+        self::assertEquals(80, $httpRequest->server->get('SERVER_PORT')); // Can be int or string
         self::assertSame('http', $httpRequest->server->get('REQUEST_SCHEME'));
     }
 
@@ -61,7 +61,7 @@ final class HttpFoundationFactoryTest extends TestCase
 
         self::assertSame('on', $httpRequest->server->get('HTTPS'));
         self::assertSame('https', $httpRequest->server->get('REQUEST_SCHEME'));
-        self::assertSame('443', $httpRequest->server->get('SERVER_PORT'));
+        self::assertEquals(443, $httpRequest->server->get('SERVER_PORT')); // Can be int or string
     }
 
     public function testMakeRequestWithCustomPort(): void
@@ -72,7 +72,7 @@ final class HttpFoundationFactoryTest extends TestCase
 
         $httpRequest = $this->factory->make($psr7Request);
 
-        self::assertSame('8080', $httpRequest->server->get('SERVER_PORT'));
+        self::assertEquals(8080, $httpRequest->server->get('SERVER_PORT')); // Can be int or string
     }
 
     public function testMakeRequestWithHeaders(): void
@@ -272,7 +272,7 @@ final class HttpFoundationFactoryTest extends TestCase
         $httpRequest = $this->factory->make($psr7Request);
 
         self::assertSame('DELETE', $httpRequest->getMethod());
-        self::assertSame('/api/users/789', $httpRequest->server->get('PATH_INFO'));
+        self::assertSame('/api/users/789', $httpRequest->getPathInfo());
         self::assertSame('', $httpRequest->getContent());
     }
 
@@ -387,7 +387,7 @@ final class HttpFoundationFactoryTest extends TestCase
 
         $httpRequest = $this->factory->make($psr7Request);
 
-        self::assertSame('/api/users/123', $httpRequest->server->get('PATH_INFO'));
+        self::assertSame('/api/users/123', $httpRequest->getPathInfo());
     }
 
     public function testMakeRequestWithRemoteAddr(): void

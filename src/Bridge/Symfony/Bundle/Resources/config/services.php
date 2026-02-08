@@ -62,12 +62,14 @@ use SwooleBundle\SwooleBundle\Server\Api\WithApiServerConfiguration;
 use SwooleBundle\SwooleBundle\Server\Grpc\CallHandler\UnaryCallHandler;
 use SwooleBundle\SwooleBundle\Server\Grpc\CallHandler\ServerStreamCallHandler;
 use SwooleBundle\SwooleBundle\Server\Grpc\Factory\ContextFactory;
+use SwooleBundle\SwooleBundle\Server\Grpc\Factory\HttpFoundationFactory;
 use SwooleBundle\SwooleBundle\Server\Grpc\GrpcServerRequestHandler;
 use SwooleBundle\SwooleBundle\Server\Grpc\Interceptor\InterceptorChain;
 use SwooleBundle\SwooleBundle\Server\Grpc\Interceptor\LoggingInterceptor;
 use SwooleBundle\SwooleBundle\Server\Grpc\Serialization\PayloadDeserializer;
 use SwooleBundle\SwooleBundle\Server\Grpc\Serialization\PayloadSerializer;
 use SwooleBundle\SwooleBundle\Server\Grpc\Serialization\ProtobufSerializerDeserializer;
+use SwooleBundle\SwooleBundle\Server\Grpc\Service\GrpcToHttpKernelRequest;
 use SwooleBundle\SwooleBundle\Server\Grpc\Service\ServiceHandler;
 use SwooleBundle\SwooleBundle\Server\Grpc\Writer\ResponseWriter;
 use SwooleBundle\SwooleBundle\Server\Grpc\WithGrpcServerConfiguration;
@@ -424,10 +426,10 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         ->arg('$interceptorsEnabled', param('swoole_bundle.grpc.interceptors'));
 
     // gRPC to HTTP Kernel Bridge
-    $services->set(\SwooleBundle\SwooleBundle\Server\Grpc\Factory\HttpFoundationFactory::class);
+    $services->set(HttpFoundationFactory::class);
 
-    $services->set(\SwooleBundle\SwooleBundle\Server\Grpc\Service\GrpcToHttpKernelRequest::class)
-        ->arg('$httpFoundationFactory', service(\SwooleBundle\SwooleBundle\Server\Grpc\Factory\HttpFoundationFactory::class))
+    $services->set(GrpcToHttpKernelRequest::class)
+        ->arg('$httpFoundationFactory', service(HttpFoundationFactory::class))
         ->arg('$kernelPool', service(KernelPool::class))
         ->tag('swoole_bundle.grpc_service')
         ->tag('swoole_bundle.bootable_service');

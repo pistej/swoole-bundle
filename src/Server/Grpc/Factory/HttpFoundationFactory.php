@@ -17,109 +17,82 @@ final class HttpFoundationFactory
      */
     public function make(Psr7Request $request): HttpFoundationRequest
     {
-        // Parse the URI to extract components
-        $uri = $request->getUri();
-        $parsedUrl = parse_url($uri);
+        $method = $request->getMethod();
+        $body = $request->getBody();
 
-        // Extract query parameters from URI
-        $queryString = $parsedUrl['query'] ?? '';
-        parse_str($queryString, $query);
-
-        // Determine scheme and port
-        $scheme = $parsedUrl['scheme'] ?? 'http';
-        $isHttps = $scheme === 'https';
-        $defaultPort = $isHttps ? 443 : 80;
-        $port = $parsedUrl['port'] ?? $defaultPort;
-
-        // Build server array similar to DefaultRequestFactory
+        // Build server array for additional server variables not set by create()
         $server = [
-            'REQUEST_METHOD' => strtoupper($request->getMethod()),
-            'REQUEST_URI' => $uri,
             'SERVER_PROTOCOL' => $request->getProtocolVersion() ?: 'HTTP/1.1',
-            'QUERY_STRING' => $queryString,
-            'REQUEST_SCHEME' => $scheme,
-            'SERVER_NAME' => $parsedUrl['host'] ?? 'localhost',
-            'SERVER_PORT' => (string) $port,
             'REMOTE_ADDR' => '127.0.0.1', // Default for gRPC requests
             'REMOTE_PORT' => '0',
         ];
 
-        // Set HTTPS flag if using https scheme
-        if ($isHttps) {
-            $server['HTTPS'] = 'on';
-        }
-
-        // Add path if present
-        if (isset($parsedUrl['path'])) {
-            $server['PATH_INFO'] = $parsedUrl['path'];
-            $server['SCRIPT_NAME'] = '';
-        }
-
-        // Initialize cookies array
         $cookies = [];
+        $hostHeader = null;
 
         // Convert headers from Psr7Request format to server variables
         foreach ($request->getHeaders() as $name => $headerValue) {
             /** @var HeaderValue $headerValue */
-            $values = $headerValue->getValue(); // RepeatedField of strings
+            $values = $headerValue->getValue();
             $valueArray = [];
             foreach ($values as $value) {
                 $valueArray[] = $value;
             }
 
-            // Special handling for certain headers
             $lowerName = strtolower($name);
             if ($lowerName === 'content-type') {
                 $server['CONTENT_TYPE'] = implode(', ', $valueArray);
             } elseif ($lowerName === 'content-length') {
                 $server['CONTENT_LENGTH'] = implode(', ', $valueArray);
             } elseif ($lowerName === 'host') {
-                // Set both HTTP_HOST and SERVER_NAME from Host header
-                $hostValue = implode(', ', $valueArray);
-                $server['HTTP_HOST'] = $hostValue;
-                // Update SERVER_NAME if not already set from URI
-                if (!isset($parsedUrl['host'])) {
-                    $server['SERVER_NAME'] = explode(':', $hostValue)[0];
-                }
+                // Store Host header to override after request creation
+                $hostHeader = implode(', ', $valueArray);
             } elseif ($lowerName === 'cookie') {
-                // Parse cookies from Cookie header
                 $cookies = $this->parseCookies(implode('; ', $valueArray));
             } else {
-                $headerKey = 'HTTP_' . strtoupper(str_replace('-', '_', $name));
-                $server[$headerKey] = implode(', ', $valueArray);
+                $server['HTTP_' . strtoupper(str_replace('-', '_', $name))] = implode(', ', $valueArray);
             }
         }
 
-        // Parse POST data from body if it's a POST/PUT/PATCH request
-        $post = [];
-        $body = $request->getBody();
-        $method = strtoupper($request->getMethod());
-
-        if (in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
+        // Parse POST data from body for form-encoded requests
+        $parameters = [];
+        if (in_array(strtoupper($method), ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
             $contentType = $server['CONTENT_TYPE'] ?? '';
-            if (strpos($contentType, 'application/x-www-form-urlencoded') !== false) {
-                parse_str($body, $post);
-            } elseif (strpos($contentType, 'application/json') !== false) {
-                // Keep body as-is for JSON, don't parse into $post
-                $post = [];
+            if (str_contains($contentType, 'application/x-www-form-urlencoded')) {
+                parse_str($body, $parameters);
             }
         }
 
-        return new HttpFoundationRequest(
-            $query,
-            $post,
-            [], // attributes - empty for now, can be populated by the application
+        // HttpFoundationRequest::create() automatically handles:
+        // - URI parsing (scheme, host, port, path, query)
+        // - HTTPS detection from scheme
+        // - SERVER_PORT, REQUEST_SCHEME, PATH_INFO from URI
+        // - Query parameter extraction
+        $httpRequest = HttpFoundationRequest::create(
+            $request->getUri(),
+            $method,
+            $parameters,
             $cookies,
-            [], // files - not supported in PSR-7 request message
+            [],
             $server,
-            $body,
+            $body
         );
+
+        // Set REQUEST_SCHEME from the scheme detected by create()
+        $httpRequest->server->set('REQUEST_SCHEME', $httpRequest->getScheme());
+
+        // Override HTTP_HOST if a Host header was provided
+        if ($hostHeader !== null) {
+            $httpRequest->headers->set('Host', $hostHeader);
+            $httpRequest->server->set('HTTP_HOST', $hostHeader);
+        }
+
+        return $httpRequest;
     }
 
     /**
      * Parse cookies from a Cookie header string.
      *
-     * @param string $cookieHeader
      * @return array<string, string>
      */
     private function parseCookies(string $cookieHeader): array
@@ -133,10 +106,12 @@ final class HttpFoundationFactory
         $pairs = explode('; ', $cookieHeader);
         foreach ($pairs as $pair) {
             $parts = explode('=', $pair, 2);
-            if (count($parts) === 2) {
-                [$name, $value] = $parts;
-                $cookies[trim($name)] = urldecode(trim($value));
+            if (count($parts) !== 2) {
+                continue;
             }
+
+            [$name, $value] = $parts;
+            $cookies[trim($name)] = urldecode(trim($value));
         }
 
         return $cookies;

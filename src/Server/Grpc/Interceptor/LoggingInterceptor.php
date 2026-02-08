@@ -54,6 +54,7 @@ final readonly class LoggingInterceptor implements Interceptor
                 'service' => $service,
                 'method' => $method,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
                 'duration_ms' => round($duration * 1000, 2),
                 'exception' => $e::class,
             ]);
