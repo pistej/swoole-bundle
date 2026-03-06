@@ -8,7 +8,10 @@ use Swoole\Http\Request as SwooleRequest;
 use Swoole\Http\Response as SwooleResponse;
 use SwooleBundle\SwooleBundle\Bridge\Symfony\HttpFoundation\RequestFactory;
 use SwooleBundle\SwooleBundle\Bridge\Symfony\HttpKernel\KernelPool;
+use SwooleBundle\SwooleBundle\Server\Grpc\Enum\ContentType;
+use SwooleBundle\SwooleBundle\Server\Grpc\EventListener\GrpcExceptionCapturingSubscriber;
 use SwooleBundle\SwooleBundle\Server\Grpc\Exception\GRPCException;
+use SwooleBundle\SwooleBundle\Server\Grpc\Exception\GrpcExceptionHandler;
 use SwooleBundle\SwooleBundle\Server\Grpc\HttpFoundation\GrpcResponse;
 use SwooleBundle\SwooleBundle\Server\Grpc\Serialization\PayloadSerializer;
 use SwooleBundle\SwooleBundle\Server\Grpc\Writer\ResponseWriter;
@@ -18,6 +21,7 @@ use Symfony\Component\HttpFoundation\Request as HttpFoundationRequest;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\HttpKernel\TerminableInterface;
+use Throwable;
 
 final readonly class GrpcKernelRequestHandler implements RequestHandler, Bootable
 {
@@ -48,7 +52,7 @@ final readonly class GrpcKernelRequestHandler implements RequestHandler, Bootabl
                 $response,
                 Status::from($e->getCode()),
                 $e->getMessage(),
-                'application/grpc'
+                ContentType::GRPC->value
             );
 
             return;
@@ -69,17 +73,17 @@ final readonly class GrpcKernelRequestHandler implements RequestHandler, Bootabl
             $httpFoundationResponse = $kernel->handle($httpFoundationRequest);
 
             if (!$httpFoundationResponse instanceof GrpcResponse) {
-                $status = $httpFoundationResponse->getStatusCode() === 404 ? Status::UNIMPLEMENTED : Status::INTERNAL;
-                $this->responseWriter->writeError(
-                    $response,
+                $this->executeKernelTerminate($kernel, $httpFoundationRequest, $httpFoundationResponse);
+
+                /** @var Throwable|null $previous */
+                $previous = $httpFoundationRequest->attributes->get(GrpcExceptionCapturingSubscriber::ATTRIBUTE_KEY);
+                $status = GrpcExceptionHandler::mapHttpStatus($httpFoundationResponse->getStatusCode());
+
+                throw GRPCException::create(
+                    $previous?->getMessage() ?? 'Unexpected response type: ' . GrpcResponse::class,
                     $status,
-                    'Expected response of type ' . GrpcResponse::class,
-                    $context->getContentType(),
+                    $previous,
                 );
-
-                $this->executeKernelTerminate($kernel, $httpFoundationRequest, new Response());
-
-                return;
             }
 
             $serializedMessage = $this->protobufSerializer->serialize(

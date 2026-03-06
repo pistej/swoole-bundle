@@ -60,6 +60,7 @@ use SwooleBundle\SwooleBundle\Server\Api\ApiServerClientFactory;
 use SwooleBundle\SwooleBundle\Server\Api\ApiServerRequestHandler;
 use SwooleBundle\SwooleBundle\Server\Api\WithApiServerConfiguration;
 use SwooleBundle\SwooleBundle\Server\Grpc\ArgumentResolver\GrpcMessageValueResolver;
+use SwooleBundle\SwooleBundle\Server\Grpc\EventListener\GrpcExceptionCapturingSubscriber;
 use SwooleBundle\SwooleBundle\Server\Grpc\EventListener\GrpcMessageViewSubscriber;
 use SwooleBundle\SwooleBundle\Server\Grpc\Exception\GrpcExceptionHandler;
 use SwooleBundle\SwooleBundle\Server\Grpc\GrpcKernelRequestHandler;
@@ -375,6 +376,9 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     $services->set('swoole_bundle.server.api_server.request_handler', ExceptionRequestHandler::class)
         ->arg('$decorated', service(ApiServerRequestHandler::class))
         ->arg('$exceptionHandler', service(ExceptionHandler::class));
+
+    $services->set(GrpcExceptionCapturingSubscriber::class)
+        ->tag('kernel.event_subscriber');
 
     $services->set(GrpcMessageViewSubscriber::class)
         ->tag('kernel.event_subscriber');

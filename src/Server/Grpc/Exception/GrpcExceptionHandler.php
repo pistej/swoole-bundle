@@ -38,13 +38,13 @@ final readonly class GrpcExceptionHandler implements ExceptionHandler
         }
 
         if ($exception instanceof HttpExceptionInterface) {
-            return $this->mapHttpStatus($exception->getStatusCode());
+            return self::mapHttpStatus($exception->getStatusCode());
         }
 
         return Status::INTERNAL;
     }
 
-    private function mapHttpStatus(int $httpStatus): Status
+    public static function mapHttpStatus(int $httpStatus): Status
     {
         return match ($httpStatus) {
             400 => Status::INVALID_ARGUMENT,
