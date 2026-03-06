@@ -29,7 +29,7 @@ final class GrpcMessageViewSubscriber implements EventSubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
-            KernelEvents::VIEW => ['onKernelView', 200],
+            KernelEvents::VIEW => ['onKernelView', 10],
         ];
     }
 }

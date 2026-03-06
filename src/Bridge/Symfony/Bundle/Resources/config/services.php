@@ -380,7 +380,9 @@ return static function (ContainerConfigurator $containerConfigurator): void {
 
     $services->set(GrpcMessageValueResolver::class)
         ->arg('$protobufSerializer', service(PayloadDeserializer::class))
-        ->tag('controller.value_resolver');
+        ->tag('controller.argument_value_resolver', [
+            'priority' => 1,
+        ]);
 
     $services->set(ResponseWriter::class)
         ->arg('$logger', service('logger'))
