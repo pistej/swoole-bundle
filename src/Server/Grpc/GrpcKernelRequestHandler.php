@@ -10,7 +10,7 @@ use SwooleBundle\SwooleBundle\Bridge\Symfony\HttpFoundation\RequestFactory;
 use SwooleBundle\SwooleBundle\Bridge\Symfony\HttpKernel\KernelPool;
 use SwooleBundle\SwooleBundle\Server\Grpc\Exception\GRPCException;
 use SwooleBundle\SwooleBundle\Server\Grpc\HttpFoundation\GrpcResponse;
-use SwooleBundle\SwooleBundle\Server\Grpc\Serialization\ProtobufSerializerDeserializer;
+use SwooleBundle\SwooleBundle\Server\Grpc\Serialization\PayloadSerializer;
 use SwooleBundle\SwooleBundle\Server\Grpc\Writer\ResponseWriter;
 use SwooleBundle\SwooleBundle\Server\RequestHandler\RequestHandler;
 use SwooleBundle\SwooleBundle\Server\Runtime\Bootable;
@@ -23,7 +23,7 @@ final readonly class GrpcKernelRequestHandler implements RequestHandler, Bootabl
         private RequestFactory $requestFactory,
         private ResponseWriter $responseWriter,
         private KernelPool $kernelPool,
-        private ProtobufSerializerDeserializer $protobufSerializer,
+        private PayloadSerializer $protobufSerializer,
     ) {
     }
 

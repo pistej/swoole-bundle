@@ -111,8 +111,9 @@ use SwooleBundle\SwooleBundle\Server\WorkerHandler\WorkerStartHandler;
 use SwooleBundle\SwooleBundle\Server\WorkerHandler\WorkerStopHandler;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\Filesystem\Filesystem;
+use SwooleBundle\SwooleBundle\Server\Grpc\Serialization\PayloadDeserializer;
+use SwooleBundle\SwooleBundle\Server\Grpc\Serialization\PayloadSerializer;
 
-use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
 
@@ -378,19 +379,22 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         ->tag('kernel.event_subscriber');
 
     $services->set(GrpcMessageValueResolver::class)
-        ->tag('controller.argument_value_resolver');
+        ->arg('$protobufSerializer', service(PayloadDeserializer::class))
+        ->tag('controller.value_resolver');
 
     $services->set(ResponseWriter::class)
         ->arg('$logger', service('logger'))
         ->tag('monolog.logger', ['channel' => 'grpc']);
 
     $services->set(ProtobufSerializerDeserializer::class);
+    $services->alias(PayloadSerializer::class, ProtobufSerializerDeserializer::class);
+    $services->alias(PayloadDeserializer::class, ProtobufSerializerDeserializer::class);
 
     $services->set(GrpcKernelRequestHandler::class)
         ->arg('$requestFactory', service(RequestFactory::class))
         ->arg('$responseWriter', service(ResponseWriter::class))
         ->arg('$kernelPool', service(KernelPool::class))
-        ->arg('$protobufSerializer', service(ProtobufSerializerDeserializer::class))
+        ->arg('$protobufSerializer', service(PayloadSerializer::class))
         ->tag('swoole_bundle.bootable_service');
 
     $services->set('swoole_bundle.server.grpc_server.request_handler', ExceptionRequestHandler::class)
