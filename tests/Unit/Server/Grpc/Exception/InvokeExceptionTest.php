@@ -15,7 +15,7 @@ final class InvokeExceptionTest extends TestCase
     {
         $exception = new InvokeException('service unavailable');
 
-        $this->assertSame(Status::UNAVAILABLE, $exception->getCode());
+        $this->assertSame(Status::UNAVAILABLE->value, $exception->getCode());
         $this->assertSame('service unavailable', $exception->getMessage());
         $this->assertInstanceOf(GRPCException::class, $exception);
     }
@@ -25,8 +25,7 @@ final class InvokeExceptionTest extends TestCase
         $exception = InvokeException::create('invalid argument', Status::INVALID_ARGUMENT);
 
         $this->assertInstanceOf(InvokeException::class, $exception);
-        $this->assertSame(Status::INVALID_ARGUMENT, $exception->getCode());
+        $this->assertSame(Status::INVALID_ARGUMENT->value, $exception->getCode());
         $this->assertSame('invalid argument', $exception->getMessage());
     }
 }
-

@@ -25,7 +25,7 @@ final readonly class ResponseWriter
     /**
      * Write a gRPC error response.
      */
-    public function writeError(Response $response, int $status, string $message, string $contentType): void
+    public function writeError(Response $response, Status $status, string $message, string $contentType): void
     {
         $this->writeResponse($response, '', $status, $message, $contentType);
     }
@@ -36,7 +36,7 @@ final readonly class ResponseWriter
     public function write(
         Response $response,
         string $payload,
-        int $status = Status::OK,
+        Status $status = Status::OK,
         string $message = 'OK',
         string $contentType = 'application/grpc',
     ): void
@@ -47,7 +47,7 @@ final readonly class ResponseWriter
     private function writeResponse(
         Response $response,
         string $payload,
-        int $status = Status::OK,
+        Status $status = Status::OK,
         string $message = 'OK',
         string $contentType = 'application/grpc',
     ): void
@@ -58,7 +58,7 @@ final readonly class ResponseWriter
         ];
 
         $trailers = [
-            Constant::GRPC_STATUS => $status,
+            Constant::GRPC_STATUS => $status->value,
             Constant::GRPC_MESSAGE => $message,
         ];
 

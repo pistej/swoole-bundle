@@ -16,7 +16,7 @@ final class GRPCExceptionTest extends TestCase
     {
         $exception = new GRPCException('something went wrong');
 
-        $this->assertSame(Status::UNKNOWN, $exception->getCode());
+        $this->assertSame(Status::UNKNOWN->value, $exception->getCode());
         $this->assertSame('something went wrong', $exception->getMessage());
     }
 
@@ -24,7 +24,7 @@ final class GRPCExceptionTest extends TestCase
     {
         $exception = new GRPCException('not found', Status::NOT_FOUND);
 
-        $this->assertSame(Status::NOT_FOUND, $exception->getCode());
+        $this->assertSame(Status::NOT_FOUND->value, $exception->getCode());
     }
 
     public function testCreateFactoryMethod(): void
@@ -33,7 +33,7 @@ final class GRPCExceptionTest extends TestCase
 
         $this->assertInstanceOf(GRPCException::class, $exception);
         $this->assertSame('internal error', $exception->getMessage());
-        $this->assertSame(Status::INTERNAL, $exception->getCode());
+        $this->assertSame(Status::INTERNAL->value, $exception->getCode());
     }
 
     public function testExtendsRuntimeException(): void

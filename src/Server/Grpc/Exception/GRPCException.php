@@ -20,16 +20,17 @@ class GRPCException extends RuntimeException
      */
     public function __construct(
         string $message = '',
-        ?int $code = null,
+        ?Status $code = null,
         ?Throwable $previous = null,
     ) {
-        parent::__construct($message, (int) ($code ?? static::CODE), $previous);
+        parent::__construct($message, ($code ?? static::CODE)->value, $previous);
     }
 
     /**
      * Create a new GRPCException instance.
      */
-    public static function create(string $message, ?int $code = null, ?Throwable $previous = null): static {
+    public static function create(string $message, ?Status $code = null, ?Throwable $previous = null): static
+    {
         return new static($message, $code, $previous);
     }
 }

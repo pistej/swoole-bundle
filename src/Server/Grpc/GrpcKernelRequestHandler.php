@@ -44,7 +44,12 @@ final readonly class GrpcKernelRequestHandler implements RequestHandler, Bootabl
         try {
             $context->validateRequest();
         } catch (GRPCException $e) {
-            $this->responseWriter->writeError($response, $e->getCode(), $e->getMessage(), $context->getContentType());
+            $this->responseWriter->writeError(
+                $response,
+                Status::from($e->getCode()),
+                $e->getMessage(),
+                'application/grpc'
+            );
 
             return;
         }
