@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SwooleBundle\SwooleBundle\Tests\Unit\Server\Grpc\KernelBridge;
+namespace SwooleBundle\SwooleBundle\Tests\Unit\Server\Grpc;
 
 use PHPUnit\Framework\TestCase;
 use Swoole\Http\Request as SwooleRequest;
@@ -119,49 +119,4 @@ final class ContextTest extends TestCase
         $context->validateRequest();
     }
 
-    public function testParseRequestWithValidUri(): void
-    {
-        $request = $this->createMockSwooleRequest(
-            ['request_uri' => '/package.Service/Method'],
-            []
-        );
-
-        $context = new Context($request);
-        $result = $context->parseRequest();
-
-        $this->assertSame($context, $result);
-        $this->assertEquals('/package.Service/Method', $context->getRequestUri());
-    }
-
-    public function testParseRequestThrowsWhenUriIsEmpty(): void
-    {
-        $request = $this->createMockSwooleRequest(
-            ['request_uri' => ''],
-            []
-        );
-
-        $context = new Context($request);
-
-        $this->expectException(InvokeException::class);
-        $this->expectExceptionMessage('Invalid gRPC request: empty request URI');
-
-        $context->parseRequest();
-    }
-
-    public function testChainedValidationAndParsing(): void
-    {
-        $request = $this->createMockSwooleRequest(
-            ['request_uri' => '/test.Service/TestMethod'],
-            [
-                'content-type' => 'application/grpc',
-                'te' => 'trailers',
-            ]
-        );
-
-        $context = new Context($request);
-        $context->validateRequest()->parseRequest();
-
-        $this->assertEquals('application/grpc', $context->getContentType());
-        $this->assertEquals('/test.Service/TestMethod', $context->getRequestUri());
-    }
 }

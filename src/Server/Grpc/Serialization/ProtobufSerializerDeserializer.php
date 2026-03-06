@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace SwooleBundle\SwooleBundle\Server\Grpc\Serialization;
 
+use Exception;
 use Google\Protobuf\Internal\Message;
 use InvalidArgumentException;
-use SwooleBundle\SwooleBundle\Server\Grpc\Context;
 use SwooleBundle\SwooleBundle\Server\Grpc\Enum\ContentType;
 
 /**
@@ -15,14 +15,17 @@ use SwooleBundle\SwooleBundle\Server\Grpc\Enum\ContentType;
  */
 final class ProtobufSerializerDeserializer implements PayloadSerializer, PayloadDeserializer
 {
-    public function serialize(Message $message, Context $context): string
+    public function serialize(Message $message, string $contentType): string
     {
-        return $this->getContentType($context)->isJson()
+        return $this->getContentType($contentType)->isJson()
             ? $message->serializeToJsonString()
             : $message->serializeToString();
     }
 
-    public function deserialize(string $payload, string $messageClass, Context $context): Message
+    /**
+     * @throws Exception
+     */
+    public function deserialize(string $payload, string $messageClass, string $contentType): Message
     {
         // Strip gRPC framing (first 5 bytes: 1 byte compressed flag + 4 bytes message length)
         $stripedPayload = strlen($payload) > 5 ? substr($payload, 5) : '';
@@ -34,7 +37,7 @@ final class ProtobufSerializerDeserializer implements PayloadSerializer, Payload
             return $message;
         }
 
-        if ($this->getContentType($context)->isJson()) {
+        if ($this->getContentType($contentType)->isJson()) {
             $message->mergeFromJsonString($stripedPayload);
         } else {
             $message->mergeFromString($stripedPayload);
@@ -44,12 +47,12 @@ final class ProtobufSerializerDeserializer implements PayloadSerializer, Payload
     }
 
     /**
-     * Get the content type from context.
+     * Get the content type from string.
      */
-    private function getContentType(Context $context): ContentType
+    private function getContentType(string $contentType): ContentType
     {
         try {
-            return ContentType::fromString($context->getContentType());
+            return ContentType::fromString($contentType);
         } catch (InvalidArgumentException) {
             // Default to protobuf if content type is invalid
             return ContentType::GRPC;

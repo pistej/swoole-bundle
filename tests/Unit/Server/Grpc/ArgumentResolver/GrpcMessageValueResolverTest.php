@@ -10,11 +10,13 @@ use Google\Protobuf\StringValue;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 use SwooleBundle\SwooleBundle\Server\Grpc\ArgumentResolver\GrpcMessageValueResolver;
+use SwooleBundle\SwooleBundle\Server\Grpc\Serialization\PayloadDeserializer;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;
 
 final class GrpcMessageValueResolverTest extends TestCase
 {
+    private PayloadDeserializer $serializer;
     private GrpcMessageValueResolver $resolver;
 
     protected function setUp(): void
@@ -23,7 +25,8 @@ final class GrpcMessageValueResolverTest extends TestCase
             self::markTestSkipped('Extension grpc is not loaded.');
         }
 
-        $this->resolver = new GrpcMessageValueResolver();
+        $this->serializer = $this->createMock(PayloadDeserializer::class);
+        $this->resolver = new GrpcMessageValueResolver($this->serializer);
     }
 
     public function testYieldsNothingWhenTypeIsNotAMessageOrNUll(): void
@@ -43,13 +46,17 @@ final class GrpcMessageValueResolverTest extends TestCase
         $this->assertEmpty(iterator_to_array($result));
     }
 
-    public function testYieldsMessageFromRequestContent(): void
+    public function testYieldsDeserializedMessageFromStringContent(): void
     {
         $message = new StringValue();
-        $message->setValue('hello');
+        $message->setValue('deserialized');
 
-        $request = Request::create('/');
-        $request->initialize([], [], [], [], [], [], $message);
+        $request = Request::create('/', 'POST', [], [], [], ['CONTENT_TYPE' => 'application/grpc'], 'raw-binary');
+
+        $this->serializer->expects($this->once())
+            ->method('deserialize')
+            ->with('raw-binary', StringValue::class, 'application/grpc')
+            ->willReturn($message);
 
         $result = $this->resolver->resolve(
             $request,
@@ -59,48 +66,18 @@ final class GrpcMessageValueResolverTest extends TestCase
         $resolved = iterator_to_array($result);
         $this->assertCount(1, $resolved);
         $this->assertSame($message, $resolved[0]);
-    }
-
-    public function testYieldsMessageFromRequestAttributes(): void
-    {
-        $message = new StringValue();
-        $message->setValue('from-attribute');
-
-        $request = Request::create('/');
-        $request->attributes->set('grpc_message', $message);
-
-        $result = $this->resolver->resolve(
-            $request,
-            $this->makeArgument(StringValue::class)
-        );
-
-        $resolved = iterator_to_array($result);
-        $this->assertCount(1, $resolved);
-        $this->assertSame($message, $resolved[0]);
-    }
-
-    public function testYieldsNothingWhenMessageTypeMismatch(): void
-    {
-        $message = new StringValue();
-        $message->setValue('hello');
-
-        $request = Request::create('/');
-        $request->attributes->set('msg', $message);
-
-        $result = $this->resolver->resolve(
-            $request,
-            $this->makeArgument(Int32Value::class)
-        );
-
-        $this->assertEmpty(iterator_to_array($result));
     }
 
     public function testAcceptsBaseMessageClass(): void
     {
-        $message = new StringValue();
+        $message = $this->createMock(Message::class);
 
-        $request = Request::create('/');
-        $request->initialize([], [], [], [], [], [], $message);
+        $request = Request::create('/', 'POST', [], [], [], ['CONTENT_TYPE' => 'application/grpc'], 'raw-binary');
+
+        $this->serializer->expects($this->once())
+            ->method('deserialize')
+            ->with('raw-binary', Message::class, 'application/grpc')
+            ->willReturn($message);
 
         $result = $this->resolver->resolve(
             $request,

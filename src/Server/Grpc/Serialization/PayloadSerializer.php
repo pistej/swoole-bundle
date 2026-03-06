@@ -16,8 +16,8 @@ interface PayloadSerializer
      * Serialize a message to string.
      *
      * @param Message $message The message to serialize
-     * @param Context $context The gRPC context (for content-type detection)
+     * @param string $contentType The gRPC content-type (for detection)
      * @return string The serialized payload
      */
-    public function serialize(Message $message, Context $context): string;
+    public function serialize(Message $message, string $contentType): string;
 }

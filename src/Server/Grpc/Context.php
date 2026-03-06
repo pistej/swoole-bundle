@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace SwooleBundle\SwooleBundle\Server\Grpc;
 
 use Swoole\Http\Request as SwooleRequest;
-use SwooleBundle\SwooleBundle\Server\Grpc\Exception\InvokeException;
 use SwooleBundle\SwooleBundle\Server\Grpc\Enum\ContentType;
+use SwooleBundle\SwooleBundle\Server\Grpc\Exception\InvokeException;
 
 final class Context
 {
     private string $contentType = '';
-    private string $requestUri = '';
 
     public function __construct(
         private readonly SwooleRequest $request,
@@ -24,14 +23,6 @@ final class Context
     public function getContentType(): string
     {
         return $this->contentType;
-    }
-
-    /**
-     * Get the parsed request URI.
-     */
-    public function getRequestUri(): string
-    {
-        return $this->requestUri;
     }
 
     /**
@@ -57,24 +48,6 @@ final class Context
         }
 
         $this->contentType = $this->request->header['content-type'];
-
-        return $this;
-    }
-
-    /**
-     * Parse the request URI from the Swoole HTTP request.
-     *
-     * @throws InvokeException if request URI is empty
-     */
-    public function parseRequest(): self
-    {
-        $requestUri = $this->request->server['request_uri'];
-
-        if (empty($requestUri)) {
-            throw InvokeException::create('Invalid gRPC request: empty request URI', Status::INVALID_ARGUMENT);
-        }
-
-        $this->requestUri = $requestUri;
 
         return $this;
     }

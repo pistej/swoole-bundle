@@ -17,12 +17,6 @@ final class InvokeExceptionTest extends TestCase
 
         $this->assertSame(Status::UNAVAILABLE, $exception->getCode());
         $this->assertSame('service unavailable', $exception->getMessage());
-    }
-
-    public function testExtendsGRPCException(): void
-    {
-        $exception = new InvokeException('error');
-
         $this->assertInstanceOf(GRPCException::class, $exception);
     }
 

@@ -61,10 +61,8 @@ use SwooleBundle\SwooleBundle\Server\Api\ApiServerRequestHandler;
 use SwooleBundle\SwooleBundle\Server\Api\WithApiServerConfiguration;
 use SwooleBundle\SwooleBundle\Server\Grpc\ArgumentResolver\GrpcMessageValueResolver;
 use SwooleBundle\SwooleBundle\Server\Grpc\EventListener\GrpcMessageViewSubscriber;
-use SwooleBundle\SwooleBundle\Server\Grpc\Factory\GrpcRequestFactory;
 use SwooleBundle\SwooleBundle\Server\Grpc\GrpcKernelRequestHandler;
 use SwooleBundle\SwooleBundle\Server\Grpc\Serialization\ProtobufSerializerDeserializer;
-use SwooleBundle\SwooleBundle\Server\Grpc\Registry\ControllerActionRegistry;
 use SwooleBundle\SwooleBundle\Server\Grpc\Writer\ResponseWriter;
 use SwooleBundle\SwooleBundle\Server\Grpc\WithGrpcServerConfiguration;
 use SwooleBundle\SwooleBundle\Server\Config\Sockets;
@@ -382,10 +380,6 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     $services->set(GrpcMessageValueResolver::class)
         ->tag('controller.argument_value_resolver');
 
-    $services->set(ControllerActionRegistry::class);
-
-    $services->set(GrpcRequestFactory::class);
-
     $services->set(ResponseWriter::class)
         ->arg('$logger', service('logger'))
         ->tag('monolog.logger', ['channel' => 'grpc']);
@@ -393,8 +387,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     $services->set(ProtobufSerializerDeserializer::class);
 
     $services->set(GrpcKernelRequestHandler::class)
-        ->arg('$registry', service(ControllerActionRegistry::class))
-        ->arg('$requestFactory', service(GrpcRequestFactory::class))
+        ->arg('$requestFactory', service(RequestFactory::class))
         ->arg('$responseWriter', service(ResponseWriter::class))
         ->arg('$kernelPool', service(KernelPool::class))
         ->arg('$protobufSerializer', service(ProtobufSerializerDeserializer::class))

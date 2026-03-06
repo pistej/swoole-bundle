@@ -6,8 +6,6 @@ namespace SwooleBundle\SwooleBundle\Tests\Unit\Server\Grpc\Serialization;
 
 use Google\Protobuf\StringValue;
 use PHPUnit\Framework\TestCase;
-use Swoole\Http\Request as SwooleRequest;
-use SwooleBundle\SwooleBundle\Server\Grpc\Context;
 use SwooleBundle\SwooleBundle\Server\Grpc\Serialization\ProtobufSerializerDeserializer;
 
 final class ProtobufSerializerDeserializerTest extends TestCase
@@ -23,28 +21,14 @@ final class ProtobufSerializerDeserializerTest extends TestCase
         $this->serializer = new ProtobufSerializerDeserializer();
     }
 
-    private function makeContext(string $contentType): Context
-    {
-        $request = new SwooleRequest();
-        $request->header = [
-            'content-type' => $contentType,
-            'te' => 'trailers',
-        ];
-        $request->server = ['request_uri' => '/test.Service/Method'];
 
-        $context = new Context($request);
-        $context->validateRequest()->parseRequest();
-
-        return $context;
-    }
 
     public function testSerializesToProtobufBinary(): void
     {
         $message = new StringValue();
         $message->setValue('hello');
 
-        $context = $this->makeContext('application/grpc');
-        $result = $this->serializer->serialize($message, $context);
+        $result = $this->serializer->serialize($message, 'application/grpc');
 
         $this->assertSame($message->serializeToString(), $result);
     }
@@ -54,8 +38,7 @@ final class ProtobufSerializerDeserializerTest extends TestCase
         $message = new StringValue();
         $message->setValue('hello');
 
-        $context = $this->makeContext('application/grpc+json');
-        $result = $this->serializer->serialize($message, $context);
+        $result = $this->serializer->serialize($message, 'application/grpc+json');
 
         $this->assertSame($message->serializeToJsonString(), $result);
     }
@@ -69,18 +52,16 @@ final class ProtobufSerializerDeserializerTest extends TestCase
         // Build gRPC-framed payload: 1 byte flag + 4 bytes length + message
         $framed = pack('CN', 0, strlen($binary)) . $binary;
 
-        $context = $this->makeContext('application/grpc');
         /** @var StringValue $result */
-        $result = $this->serializer->deserialize($framed, StringValue::class, $context);
+        $result = $this->serializer->deserialize($framed, StringValue::class, 'application/grpc');
 
         $this->assertSame('world', $result->getValue());
     }
 
     public function testDeserializeReturnsEmptyMessageWhenPayloadTooShort(): void
     {
-        $context = $this->makeContext('application/grpc');
         /** @var StringValue $result */
-        $result = $this->serializer->deserialize('tiny', StringValue::class, $context);
+        $result = $this->serializer->deserialize('tiny', StringValue::class, 'application/grpc');
 
         $this->assertInstanceOf(StringValue::class, $result);
         $this->assertSame('', $result->getValue());
