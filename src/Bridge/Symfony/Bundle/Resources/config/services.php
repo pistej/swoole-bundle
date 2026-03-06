@@ -61,6 +61,7 @@ use SwooleBundle\SwooleBundle\Server\Api\ApiServerRequestHandler;
 use SwooleBundle\SwooleBundle\Server\Api\WithApiServerConfiguration;
 use SwooleBundle\SwooleBundle\Server\Grpc\ArgumentResolver\GrpcMessageValueResolver;
 use SwooleBundle\SwooleBundle\Server\Grpc\EventListener\GrpcMessageViewSubscriber;
+use SwooleBundle\SwooleBundle\Server\Grpc\Exception\GrpcExceptionHandler;
 use SwooleBundle\SwooleBundle\Server\Grpc\GrpcKernelRequestHandler;
 use SwooleBundle\SwooleBundle\Server\Grpc\Serialization\ProtobufSerializerDeserializer;
 use SwooleBundle\SwooleBundle\Server\Grpc\Writer\ResponseWriter;
@@ -399,9 +400,12 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         ->arg('$protobufSerializer', service(PayloadSerializer::class))
         ->tag('swoole_bundle.bootable_service');
 
+    $services->set(GrpcExceptionHandler::class)
+        ->arg('$responseWriter', service(ResponseWriter::class));
+
     $services->set('swoole_bundle.server.grpc_server.request_handler', ExceptionRequestHandler::class)
         ->arg('$decorated', service(GrpcKernelRequestHandler::class))
-        ->arg('$exceptionHandler', service(ExceptionHandler::class));
+        ->arg('$exceptionHandler', service(GrpcExceptionHandler::class));
 
     $services->set(WithGrpcServerConfiguration::class)
         ->arg('$sockets', service(Sockets::class))
