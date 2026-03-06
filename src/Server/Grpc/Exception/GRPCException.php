@@ -28,10 +28,8 @@ class GRPCException extends RuntimeException
 
     /**
      * Create a new GRPCException instance.
-     *
-     * @return static
      */
-    public static function create(string $message, ?int $code = null, ?Throwable $previous = null): self {
+    public static function create(string $message, ?int $code = null, ?Throwable $previous = null): static {
         return new static($message, $code, $previous);
     }
 }

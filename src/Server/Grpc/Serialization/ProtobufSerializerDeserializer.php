@@ -6,8 +6,8 @@ namespace SwooleBundle\SwooleBundle\Server\Grpc\Serialization;
 
 use Exception;
 use Google\Protobuf\Internal\Message;
-use InvalidArgumentException;
 use SwooleBundle\SwooleBundle\Server\Grpc\Enum\ContentType;
+use ValueError;
 
 /**
  * Protobuf serializer/deserializer for gRPC Message.
@@ -28,19 +28,19 @@ final class ProtobufSerializerDeserializer implements PayloadSerializer, Payload
     public function deserialize(string $payload, string $messageClass, string $contentType): Message
     {
         // Strip gRPC framing (first 5 bytes: 1 byte compressed flag + 4 bytes message length)
-        $stripedPayload = strlen($payload) > 5 ? substr($payload, 5) : '';
+        $strippedPayload = strlen($payload) > 5 ? substr($payload, 5) : '';
 
         /** @var Message $message */
         $message = new $messageClass();
 
-        if ($stripedPayload === '') {
+        if ($strippedPayload === '') {
             return $message;
         }
 
         if ($this->getContentType($contentType)->isJson()) {
-            $message->mergeFromJsonString($stripedPayload);
+            $message->mergeFromJsonString($strippedPayload);
         } else {
-            $message->mergeFromString($stripedPayload);
+            $message->mergeFromString($strippedPayload);
         }
 
         return $message;
@@ -52,8 +52,8 @@ final class ProtobufSerializerDeserializer implements PayloadSerializer, Payload
     private function getContentType(string $contentType): ContentType
     {
         try {
-            return ContentType::fromString($contentType);
-        } catch (InvalidArgumentException) {
+            return ContentType::from($contentType);
+        } catch (ValueError) {
             // Default to protobuf if content type is invalid
             return ContentType::GRPC;
         }

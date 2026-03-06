@@ -31,9 +31,8 @@ final class ContextTest extends TestCase
         );
 
         $context = new Context($request);
-        $result = $context->validateRequest();
+        $context->validateRequest();
 
-        $this->assertSame($context, $result);
         $this->assertEquals('application/grpc', $context->getContentType());
     }
 
@@ -48,9 +47,8 @@ final class ContextTest extends TestCase
         );
 
         $context = new Context($request);
-        $result = $context->validateRequest();
+        $context->validateRequest();
 
-        $this->assertSame($context, $result);
         $this->assertEquals('application/grpc+proto', $context->getContentType());
     }
 
@@ -65,9 +63,8 @@ final class ContextTest extends TestCase
         );
 
         $context = new Context($request);
-        $result = $context->validateRequest();
+        $context->validateRequest();
 
-        $this->assertSame($context, $result);
         $this->assertEquals('application/grpc+json', $context->getContentType());
     }
 

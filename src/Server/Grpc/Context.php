@@ -30,7 +30,7 @@ final class Context
      *
      * @throws InvokeException if required headers are missing or content-type is not supported
      */
-    public function validateRequest(): self
+    public function validateRequest(): void
     {
         if (!isset($this->request->header['content-type'], $this->request->header['te'])) {
             throw InvokeException::create(
@@ -48,7 +48,5 @@ final class Context
         }
 
         $this->contentType = $this->request->header['content-type'];
-
-        return $this;
     }
 }

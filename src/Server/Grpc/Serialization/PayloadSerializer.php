@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SwooleBundle\SwooleBundle\Server\Grpc\Serialization;
 
 use Google\Protobuf\Internal\Message;
-use SwooleBundle\SwooleBundle\Server\Grpc\Context;
 
 /**
  * Interface for serializing protobuf messages to string payloads.

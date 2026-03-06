@@ -15,6 +15,8 @@ use SwooleBundle\SwooleBundle\Server\Grpc\Writer\ResponseWriter;
 use SwooleBundle\SwooleBundle\Server\RequestHandler\RequestHandler;
 use SwooleBundle\SwooleBundle\Server\Runtime\Bootable;
 use Symfony\Component\HttpFoundation\Request as HttpFoundationRequest;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\HttpKernel\TerminableInterface;
 
 final readonly class GrpcKernelRequestHandler implements RequestHandler, Bootable
@@ -42,7 +44,7 @@ final readonly class GrpcKernelRequestHandler implements RequestHandler, Bootabl
         try {
             $context->validateRequest();
         } catch (GRPCException $e) {
-            $this->responseWriter->writeError($response, $e->getCode(), $e->getMessage());
+            $this->responseWriter->writeError($response, $e->getCode(), $e->getMessage(), $context->getContentType());
 
             return;
         }
@@ -63,23 +65,40 @@ final readonly class GrpcKernelRequestHandler implements RequestHandler, Bootabl
 
             if (!$httpFoundationResponse instanceof GrpcResponse) {
                 $status = $httpFoundationResponse->getStatusCode() === 404 ? Status::UNIMPLEMENTED : Status::INTERNAL;
-                $this->responseWriter->writeError($response, $status, 'Expected GrpcResponse');
+                $this->responseWriter->writeError(
+                    $response,
+                    $status,
+                    'Expected response of type ' . GrpcResponse::class,
+                    $context->getContentType(),
+                );
+
+                $this->executeKernelTerminate($kernel, $httpFoundationRequest, new Response());
 
                 return;
             }
 
             $serializedMessage = $this->protobufSerializer->serialize(
                 $httpFoundationResponse->getMessage(),
-                $context->getContentType()
+                $context->getContentType(),
             );
 
-            $this->responseWriter->write($response, $serializedMessage);
+            $this->responseWriter->write($response, $serializedMessage, contentType: $context->getContentType());
 
-            if ($kernel instanceof TerminableInterface) {
-                $kernel->terminate($httpFoundationRequest, $httpFoundationResponse);
-            }
+            $this->executeKernelTerminate($kernel, $httpFoundationRequest, $httpFoundationResponse);
         } finally {
             $this->kernelPool->return($kernel);
         }
+    }
+
+    private function executeKernelTerminate(
+        KernelInterface $kernel,
+        HttpFoundationRequest $httpFoundationRequest,
+        Response $httpFoundationResponse,
+    ): void {
+        if (!($kernel instanceof TerminableInterface)) {
+            return;
+        }
+
+        $kernel->terminate($httpFoundationRequest, $httpFoundationResponse);
     }
 }
