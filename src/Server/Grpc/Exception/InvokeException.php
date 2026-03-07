@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace SwooleBundle\SwooleBundle\Server\Grpc\Exception;
 
-use SwooleBundle\SwooleBundle\Server\Grpc\Status;
+use SwooleBundle\SwooleBundle\Server\Grpc\Enum\Status;
 
 /**
  * Class InvokeException
  *
  * Exception thrown when a gRPC invocation fails.
  */
-final class InvokeException extends GRPCException
+class InvokeException extends GRPCException
 {
-    protected const CODE = Status::UNAVAILABLE;
+    protected static Status $statusCode = Status::UNAVAILABLE;
 }

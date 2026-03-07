@@ -14,31 +14,23 @@ final readonly class GrpcMessageValueResolver implements ValueResolverInterface
 {
     public function __construct(
         private PayloadDeserializer $protobufSerializer,
-    ) {
-    }
+    ) {}
 
     /**
      * @return iterable<Message>
      */
     public function resolve(Request $request, ArgumentMetadata $argument): iterable
     {
-        /** @var class-string<Message>|null $type */
         $type = $argument->getType();
 
-        if ($type === null || !is_a($type, Message::class, true)) {
+        if ($type === null || !is_subclass_of($type, Message::class, true)) {
             return;
         }
 
         $content = $request->getContent();
+        $contentType = $request->headers->get('content-type') ?? '';
 
-        if (is_string($content)) {
-            $contentType = $request->headers->get('content-type', '');
-
-            yield $this->protobufSerializer->deserialize($content, $type, $contentType);
-
-            return;
-        }
-
-        return;
+        /** @var class-string<Message> $type */
+        yield $this->protobufSerializer->deserialize($content, $type, $contentType);
     }
 }

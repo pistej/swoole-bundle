@@ -9,6 +9,7 @@ use Generator;
 
 final class Sockets
 {
+    /** @var array<Socket> */
     private array $additionalSockets;
 
     public function __construct(

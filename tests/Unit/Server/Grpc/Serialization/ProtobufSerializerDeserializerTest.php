@@ -21,8 +21,6 @@ final class ProtobufSerializerDeserializerTest extends TestCase
         $this->serializer = new ProtobufSerializerDeserializer();
     }
 
-
-
     public function testSerializesToProtobufBinary(): void
     {
         $message = new StringValue();
@@ -67,4 +65,3 @@ final class ProtobufSerializerDeserializerTest extends TestCase
         $this->assertSame('', $result->getValue());
     }
 }
-

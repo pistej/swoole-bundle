@@ -7,8 +7,8 @@ namespace SwooleBundle\SwooleBundle\Tests\Unit\Server\Grpc\Exception;
 use Exception;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use SwooleBundle\SwooleBundle\Server\Grpc\Enum\Status;
 use SwooleBundle\SwooleBundle\Server\Grpc\Exception\GRPCException;
-use SwooleBundle\SwooleBundle\Server\Grpc\Status;
 
 final class GRPCExceptionTest extends TestCase
 {

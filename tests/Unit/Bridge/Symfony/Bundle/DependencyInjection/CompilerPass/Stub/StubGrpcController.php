@@ -9,11 +9,7 @@ use Symfony\Component\Routing\Attribute\Route;
 final class StubGrpcController
 {
     #[Route('/test-grpc-route')]
-    public function testMethod(): void
-    {
-    }
+    public function testMethod(): void {}
 
-    public function otherMethod(): void
-    {
-    }
+    public function otherMethod(): void {}
 }

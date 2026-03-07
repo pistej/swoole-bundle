@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace SwooleBundle\SwooleBundle\Tests\Unit\Server\Grpc\Exception;
 
 use PHPUnit\Framework\TestCase;
+use SwooleBundle\SwooleBundle\Server\Grpc\Enum\Status;
 use SwooleBundle\SwooleBundle\Server\Grpc\Exception\GRPCException;
 use SwooleBundle\SwooleBundle\Server\Grpc\Exception\InvokeException;
-use SwooleBundle\SwooleBundle\Server\Grpc\Status;
 
 final class InvokeExceptionTest extends TestCase
 {

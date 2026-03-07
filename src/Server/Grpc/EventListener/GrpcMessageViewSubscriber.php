@@ -24,7 +24,7 @@ final class GrpcMessageViewSubscriber implements EventSubscriberInterface
     }
 
     /**
-     * @return array<string, array<int, string|int>>
+     * @return array<string, array<int, int|string>>
      */
     public static function getSubscribedEvents(): array
     {

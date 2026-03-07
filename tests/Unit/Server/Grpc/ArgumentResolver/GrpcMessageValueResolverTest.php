@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SwooleBundle\SwooleBundle\Tests\Unit\Server\Grpc\ArgumentResolver;
 
-use Google\Protobuf\Int32Value;
 use Google\Protobuf\Internal\Message;
 use Google\Protobuf\StringValue;
 use PHPUnit\Framework\TestCase;
@@ -44,6 +43,14 @@ final class GrpcMessageValueResolverTest extends TestCase
         );
 
         $this->assertEmpty(iterator_to_array($result));
+
+        // Message itself must not be resolved — it must not be instantiated directly
+        $result = $this->resolver->resolve(
+            Request::create('/'),
+            $this->makeArgument(Message::class)
+        );
+
+        $this->assertEmpty(iterator_to_array($result));
     }
 
     public function testYieldsDeserializedMessageFromStringContent(): void
@@ -63,26 +70,6 @@ final class GrpcMessageValueResolverTest extends TestCase
             $this->makeArgument(StringValue::class)
         );
 
-        $resolved = iterator_to_array($result);
-        $this->assertCount(1, $resolved);
-        $this->assertSame($message, $resolved[0]);
-    }
-
-    public function testAcceptsBaseMessageClass(): void
-    {
-        $message = $this->createMock(Message::class);
-
-        $request = Request::create('/', 'POST', [], [], [], ['CONTENT_TYPE' => 'application/grpc'], 'raw-binary');
-
-        $this->serializer->expects($this->once())
-            ->method('deserialize')
-            ->with('raw-binary', Message::class, 'application/grpc')
-            ->willReturn($message);
-
-        $result = $this->resolver->resolve(
-            $request,
-            $this->makeArgument(Message::class)
-        );
 
         $resolved = iterator_to_array($result);
         $this->assertCount(1, $resolved);

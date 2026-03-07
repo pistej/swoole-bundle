@@ -17,8 +17,7 @@ final readonly class WithGrpcServerConfiguration implements Configurator
     public function __construct(
         private Sockets $sockets,
         private RequestHandler $requestHandler,
-    ) {
-    }
+    ) {}
 
     public function configure(Server $server): void
     {

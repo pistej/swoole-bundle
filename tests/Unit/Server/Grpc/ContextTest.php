@@ -11,15 +11,6 @@ use SwooleBundle\SwooleBundle\Server\Grpc\Exception\InvokeException;
 
 final class ContextTest extends TestCase
 {
-    private function createMockSwooleRequest(array $server = [], array $header = []): SwooleRequest
-    {
-        $request = new SwooleRequest();
-        $request->server = $server;
-        $request->header = $header;
-
-        return $request;
-    }
-
     public function testValidateRequestWithValidHeaders(): void
     {
         $request = $this->createMockSwooleRequest(
@@ -116,4 +107,12 @@ final class ContextTest extends TestCase
         $context->validateRequest();
     }
 
+    private function createMockSwooleRequest(array $server = [], array $header = []): SwooleRequest
+    {
+        $request = new SwooleRequest();
+        $request->server = $server;
+        $request->header = $header;
+
+        return $request;
+    }
 }

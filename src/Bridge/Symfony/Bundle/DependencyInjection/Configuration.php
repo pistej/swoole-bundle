@@ -115,7 +115,7 @@ final readonly class Configuration implements ConfigurationInterface
                                     static fn($v): bool => is_string($v) || is_bool($v) || is_numeric($v) || $v === null,
                                 )
                                 ->then(static fn($v): array => [
-                                    'enabled' => (bool)$v,
+                                    'enabled' => (bool) $v,
                                     'host' => '0.0.0.0',
                                     'port' => 50051,
                                 ])

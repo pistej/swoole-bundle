@@ -9,6 +9,7 @@ use Swoole\Http\Response as SwooleResponse;
 use SwooleBundle\SwooleBundle\Bridge\Symfony\HttpFoundation\RequestFactory;
 use SwooleBundle\SwooleBundle\Bridge\Symfony\HttpKernel\KernelPool;
 use SwooleBundle\SwooleBundle\Server\Grpc\Enum\ContentType;
+use SwooleBundle\SwooleBundle\Server\Grpc\Enum\Status;
 use SwooleBundle\SwooleBundle\Server\Grpc\EventListener\GrpcExceptionCapturingSubscriber;
 use SwooleBundle\SwooleBundle\Server\Grpc\Exception\GRPCException;
 use SwooleBundle\SwooleBundle\Server\Grpc\Exception\GrpcExceptionHandler;
@@ -30,8 +31,7 @@ final readonly class GrpcKernelRequestHandler implements RequestHandler, Bootabl
         private ResponseWriter $responseWriter,
         private KernelPool $kernelPool,
         private PayloadSerializer $protobufSerializer,
-    ) {
-    }
+    ) {}
 
     /**
      * @inheritDoc
@@ -80,7 +80,7 @@ final readonly class GrpcKernelRequestHandler implements RequestHandler, Bootabl
                 $status = GrpcExceptionHandler::mapHttpStatus($httpFoundationResponse->getStatusCode());
 
                 throw GRPCException::create(
-                    $previous?->getMessage() ?? 'Unexpected response type: ' . GrpcResponse::class,
+                    $previous?->getMessage() ?? 'Unexpected response type: ' . $httpFoundationResponse::class . 'expected: ' . GrpcResponse::class,
                     $status,
                     $previous,
                 );

@@ -72,4 +72,3 @@ final class GrpcMessageViewSubscriberTest extends TestCase
         return new ViewEvent($kernel, $request, HttpKernelInterface::MAIN_REQUEST, $controllerResult);
     }
 }
-

@@ -6,6 +6,7 @@ namespace SwooleBundle\SwooleBundle\Server\Grpc;
 
 use Swoole\Http\Request as SwooleRequest;
 use SwooleBundle\SwooleBundle\Server\Grpc\Enum\ContentType;
+use SwooleBundle\SwooleBundle\Server\Grpc\Enum\Status;
 use SwooleBundle\SwooleBundle\Server\Grpc\Exception\InvokeException;
 
 final class Context
@@ -14,8 +15,7 @@ final class Context
 
     public function __construct(
         private readonly SwooleRequest $request,
-    ) {
-    }
+    ) {}
 
     /**
      * Get the content-type header from the request.

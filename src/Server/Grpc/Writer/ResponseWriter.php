@@ -7,8 +7,8 @@ namespace SwooleBundle\SwooleBundle\Server\Grpc\Writer;
 use Psr\Log\LoggerInterface;
 use Swoole\Exception;
 use Swoole\Http\Response;
-use SwooleBundle\SwooleBundle\Server\Grpc\Constant;
-use SwooleBundle\SwooleBundle\Server\Grpc\Status;
+use SwooleBundle\SwooleBundle\Server\Grpc\Enum\Header;
+use SwooleBundle\SwooleBundle\Server\Grpc\Enum\Status;
 
 /**
  * Writes gRPC responses to Swoole HTTP responses.
@@ -19,8 +19,7 @@ final readonly class ResponseWriter
 {
     public function __construct(
         private LoggerInterface $logger,
-    ) {
-    }
+    ) {}
 
     /**
      * Write a gRPC error response.
@@ -39,8 +38,7 @@ final readonly class ResponseWriter
         Status $status = Status::OK,
         string $message = 'OK',
         string $contentType = 'application/grpc',
-    ): void
-    {
+    ): void {
         $this->writeResponse($response, $payload, $status, $message, $contentType);
     }
 
@@ -50,16 +48,15 @@ final readonly class ResponseWriter
         Status $status = Status::OK,
         string $message = 'OK',
         string $contentType = 'application/grpc',
-    ): void
-    {
+    ): void {
         $headers = [
-            'content-type' => $contentType,
-            'trailer' => 'grpc-status, grpc-message',
+            Header::CONTENT_TYPE->value => $contentType,
+            Header::TRAILER->value => 'grpc-status, grpc-message',
         ];
 
         $trailers = [
-            Constant::GRPC_STATUS => $status->value,
-            Constant::GRPC_MESSAGE => $message,
+            Header::GRPC_STATUS->value => $status->value,
+            Header::GRPC_MESSAGE->value => $message,
         ];
 
         try {

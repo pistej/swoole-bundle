@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SwooleBundle\SwooleBundle\Server\Grpc;
+namespace SwooleBundle\SwooleBundle\Server\Grpc\Enum;
 
 /**
  * gRPC status codes as defined in the gRPC specification.

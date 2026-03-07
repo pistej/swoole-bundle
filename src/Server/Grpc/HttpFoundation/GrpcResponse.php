@@ -9,6 +9,9 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class GrpcResponse extends Response
 {
+    /**
+     * @param array<string, string> $headers
+     */
     public function __construct(
         private readonly Message $message,
         array $headers = [],

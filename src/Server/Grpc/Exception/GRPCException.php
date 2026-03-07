@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SwooleBundle\SwooleBundle\Server\Grpc\Exception;
 
 use RuntimeException;
-use SwooleBundle\SwooleBundle\Server\Grpc\Status;
+use SwooleBundle\SwooleBundle\Server\Grpc\Enum\Status;
 use Throwable;
 
 /**
@@ -13,24 +13,24 @@ use Throwable;
  */
 class GRPCException extends RuntimeException
 {
-    protected const CODE = Status::UNKNOWN;
+    protected static Status $statusCode = Status::UNKNOWN;
 
     /**
      * GRPCException constructor.
      */
-    public function __construct(
+    final public function __construct(
         string $message = '',
-        ?Status $code = null,
+        ?Status $statusCode = null,
         ?Throwable $previous = null,
     ) {
-        parent::__construct($message, ($code ?? static::CODE)->value, $previous);
+        parent::__construct($message, ($statusCode ?? static::$statusCode)->value, $previous);
     }
 
     /**
      * Create a new GRPCException instance.
      */
-    public static function create(string $message, ?Status $code = null, ?Throwable $previous = null): static
+    public static function create(string $message, ?Status $statusCode = null, ?Throwable $previous = null): static
     {
-        return new static($message, $code, $previous);
+        return new static($message, $statusCode, $previous);
     }
 }

@@ -6,7 +6,7 @@ namespace SwooleBundle\SwooleBundle\Server\Grpc\Exception;
 
 use Swoole\Http\Request;
 use Swoole\Http\Response;
-use SwooleBundle\SwooleBundle\Server\Grpc\Status;
+use SwooleBundle\SwooleBundle\Server\Grpc\Enum\Status;
 use SwooleBundle\SwooleBundle\Server\Grpc\Writer\ResponseWriter;
 use SwooleBundle\SwooleBundle\Server\RequestHandler\ExceptionHandler\ExceptionHandler;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -16,8 +16,7 @@ final readonly class GrpcExceptionHandler implements ExceptionHandler
 {
     public function __construct(
         private ResponseWriter $responseWriter,
-    ) {
-    }
+    ) {}
 
     public function handle(Request $request, Throwable $exception, Response $response): void
     {
@@ -29,19 +28,6 @@ final readonly class GrpcExceptionHandler implements ExceptionHandler
             $exception->getMessage(),
             $contentType,
         );
-    }
-
-    private function resolveStatus(Throwable $exception): Status
-    {
-        if ($exception instanceof GRPCException) {
-            return Status::from($exception->getCode());
-        }
-
-        if ($exception instanceof HttpExceptionInterface) {
-            return self::mapHttpStatus($exception->getStatusCode());
-        }
-
-        return Status::INTERNAL;
     }
 
     public static function mapHttpStatus(int $httpStatus): Status
@@ -60,5 +46,18 @@ final readonly class GrpcExceptionHandler implements ExceptionHandler
             504 => Status::DEADLINE_EXCEEDED,
             default => $httpStatus >= 500 ? Status::INTERNAL : Status::UNKNOWN,
         };
+    }
+
+    private function resolveStatus(Throwable $exception): Status
+    {
+        if ($exception instanceof GRPCException) {
+            return Status::from($exception->getCode());
+        }
+
+        if ($exception instanceof HttpExceptionInterface) {
+            return self::mapHttpStatus($exception->getStatusCode());
+        }
+
+        return Status::INTERNAL;
     }
 }

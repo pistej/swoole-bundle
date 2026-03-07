@@ -28,7 +28,7 @@ final class ProtobufSerializerDeserializer implements PayloadSerializer, Payload
     public function deserialize(string $payload, string $messageClass, string $contentType): Message
     {
         // Strip gRPC framing (first 5 bytes: 1 byte compressed flag + 4 bytes message length)
-        $strippedPayload = strlen($payload) > 5 ? substr($payload, 5) : '';
+        $strippedPayload = strlen($payload) >= 5 ? substr($payload, 5) : '';
 
         /** @var Message $message */
         $message = new $messageClass();

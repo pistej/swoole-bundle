@@ -9,9 +9,9 @@ use Psr\Log\LoggerInterface;
 use RuntimeException;
 use Swoole\Http\Request as SwooleRequest;
 use Swoole\Http\Response as SwooleResponse;
+use SwooleBundle\SwooleBundle\Server\Grpc\Enum\Status;
 use SwooleBundle\SwooleBundle\Server\Grpc\Exception\GRPCException;
 use SwooleBundle\SwooleBundle\Server\Grpc\Exception\GrpcExceptionHandler;
-use SwooleBundle\SwooleBundle\Server\Grpc\Status;
 use SwooleBundle\SwooleBundle\Server\Grpc\Writer\ResponseWriter;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -34,28 +34,6 @@ final class GrpcExceptionHandlerTest extends TestCase
 
         $this->request = new SwooleRequest();
         $this->request->header = ['content-type' => 'application/grpc+proto'];
-    }
-
-    private function createResponse(): SwooleResponse
-    {
-        $this->capturedTrailers = [];
-        $this->capturedHeaders = [];
-
-        $response = $this->createMock(SwooleResponse::class);
-        $response->method('trailer')
-            ->willReturnCallback(function (string $name, string $value): bool {
-                $this->capturedTrailers[$name] = $value;
-
-                return true;
-            });
-        $response->method('header')
-            ->willReturnCallback(function (string $name, string $value): bool {
-                $this->capturedHeaders[$name] = $value;
-
-                return true;
-            });
-
-        return $response;
     }
 
     public function testGrpcExceptionStatusIsForwarded(): void
@@ -122,5 +100,27 @@ final class GrpcExceptionHandlerTest extends TestCase
         );
 
         $this->assertSame('application/grpc+proto', $this->capturedHeaders['content-type']);
+    }
+
+    private function createResponse(): SwooleResponse
+    {
+        $this->capturedTrailers = [];
+        $this->capturedHeaders = [];
+
+        $response = $this->createMock(SwooleResponse::class);
+        $response->method('trailer')
+            ->willReturnCallback(function (string $name, string $value): bool {
+                $this->capturedTrailers[$name] = $value;
+
+                return true;
+            });
+        $response->method('header')
+            ->willReturnCallback(function (string $name, string $value): bool {
+                $this->capturedHeaders[$name] = $value;
+
+                return true;
+            });
+
+        return $response;
     }
 }
