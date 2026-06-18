@@ -9,7 +9,9 @@ use Generator;
 
 final class Sockets
 {
-    /** @var array<Socket> */
+    /**
+     * @var array<int, Socket>
+     */
     private array $additionalSockets;
 
     public function __construct(
@@ -19,6 +21,14 @@ final class Sockets
         Socket ...$additionalSockets,
     ) {
         $this->additionalSockets = $additionalSockets;
+    }
+
+    /**
+     * @return array<int, Socket>
+     */
+    public function getAdditionalSockets(): array
+    {
+        return $this->additionalSockets;
     }
 
     public function changeServerSocket(Socket $socket): void
@@ -79,7 +89,10 @@ final class Sockets
      * Get sockets in order:
      * - first server socket
      * - next if defined api socket
+     * - next if defined native grpc socket
      * - rest of sockets.
+     *
+     * @return Generator<int, Socket>
      */
     public function getAll(): Generator
     {

@@ -12,6 +12,7 @@ use Override;
 use Swoole\Http\Server;
 use SwooleBundle\SwooleBundle\Common\System\System;
 use SwooleBundle\SwooleBundle\Server\Config\Socket;
+use SwooleBundle\SwooleBundle\Server\Config\Sockets;
 use SwooleBundle\SwooleBundle\Server\Configurator\Configurator;
 use SwooleBundle\SwooleBundle\Server\HttpServer;
 use SwooleBundle\SwooleBundle\Server\HttpServerConfiguration;
@@ -174,6 +175,12 @@ abstract class ServerExecutionCommand extends Command
         }
         if ($sockets->hasGrpcSocket()) {
             $io->success(sprintf('gRPC Server started on http://%s', $sockets->getGrpcSocket()->addressPort()));
+        }
+        if ($sockets->getAdditionalSockets()) {
+            $sock = $sockets->getAdditionalSockets();
+            foreach ($sock as $s) {
+                $io->success(sprintf('Additional API Server(s) started on http://%s', $s->addressPort()));
+            }
         }
         $io->table(
             ['Configuration', 'Values'],
@@ -352,17 +359,35 @@ abstract class ServerExecutionCommand extends Command
             $this->getProjectDirectory() . '/public';
     }
 
+    /**
+     * @throws AssertionFailedException
+     */
     private function makeSwooleHttpServer(): Server
     {
-        $sockets = $this->serverConfiguration->getSockets();
-        $serverSocket = $sockets->getServerSocket();
+        $sockets = $this->socketsToBind();
+        $serverSocket = array_shift($sockets);
 
         return $this->httpServerFactory->make(
             $serverSocket,
             $this->serverConfiguration->getRunningMode(),
-            ...($sockets->hasApiSocket() ? [$sockets->getApiSocket()] : []),
-            ...($sockets->hasGrpcSocket() ? [$sockets->getGrpcSocket()] : [])
+            ...$sockets
         );
+    }
+
+    /**
+     * Every configured socket that has to be bound as a listener, in order: the main server socket
+     * first, followed by the optional API socket and any additional listeners registered by
+     * third-party libraries through the {@see Sockets} service.
+     *
+     * @return non-empty-list<Socket>
+     * @throws AssertionFailedException
+     */
+    private function socketsToBind(): array
+    {
+        $sockets = iterator_to_array($this->serverConfiguration->getSockets()->getAll(), false);
+        Assertion::notEmpty($sockets, 'At least the server socket must be defined.');
+
+        return $sockets;
     }
 
     /**
