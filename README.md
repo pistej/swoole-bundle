@@ -103,6 +103,10 @@ Symfony integration with [Open Swoole](https://openswoole.com/) and [Swoole](htt
   
 -   Access logs, (disabled by default) logs are configurable is a same way as apache mod log. Documentation of this feature is available [here](docs/swoole-access-logs.md).
 
+-   Additional server listeners (extra sockets)
+
+    The Swoole HTTP server can bind additional listeners (extra ports) next to the main and API sockets, so third-party libraries can serve another protocol (e.g. gRPC over HTTP/2) on a dedicated port within the same server. Documentation of this extension point is available [here](docs/additional-listeners.md).
+
 ## Requirements
 
 ### Current version
