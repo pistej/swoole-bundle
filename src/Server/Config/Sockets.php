@@ -31,6 +31,17 @@ final class Sockets
         return $this->additionalSockets;
     }
 
+    /**
+     * Register an extra listener socket, bound next to the main, API and native gRPC sockets.
+     *
+     * Intended as the extension point for third-party libraries that need to serve another
+     * protocol (e.g. gRPC over HTTP/2) on a dedicated port within the same Swoole server.
+     */
+    public function addAdditionalSocket(Socket $socket): void
+    {
+        $this->additionalSockets[] = $socket;
+    }
+
     public function changeServerSocket(Socket $socket): void
     {
         $this->serverSocket = $socket;

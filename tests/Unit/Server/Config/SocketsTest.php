@@ -35,4 +35,24 @@ final class SocketsTest extends TestCase
         $this->assertSame($grpcSocket, $all[2]);
         $this->assertSame($additionalSocket, $all[3]);
     }
+
+    public function testAddAdditionalSocketAppendsListenerAlongsideNamedSockets(): void
+    {
+        $apiSocket = new Socket('0.0.0.0', 9200);
+        $grpcSocket = new Socket('0.0.0.0', 50051);
+        $extraGrpcSocket = new Socket('0.0.0.0', 9502);
+
+        $sockets = new Sockets($this->serverSocket, $apiSocket, $grpcSocket);
+        $sockets->addAdditionalSocket($extraGrpcSocket);
+
+        $this->assertSame([$extraGrpcSocket], $sockets->getAdditionalSockets());
+
+        $all = iterator_to_array($sockets->getAll(), false);
+
+        $this->assertCount(4, $all);
+        $this->assertSame($this->serverSocket, $all[0]);
+        $this->assertSame($apiSocket, $all[1]);
+        $this->assertSame($grpcSocket, $all[2]);
+        $this->assertSame($extraGrpcSocket, $all[3]);
+    }
 }
